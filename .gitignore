@@ -1,0 +1,11 @@
+__pycache__/
+*.pyc
+.venv/
+venv/
+build/
+dist/
+*.spec
+.pytest_cache/
+.claude/worktrees/
+.claude/checkpoints/
+.claude/session-*.log

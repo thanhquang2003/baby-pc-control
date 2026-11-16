@@ -1,0 +1,110 @@
+{
+  "_template_version": "1.0.0",
+  "_notes": {
+    "status_values": [
+      "planned",
+      "in-progress",
+      "done",
+      "blocked"
+    ],
+    "id_format": "FEAT-NNN",
+    "dependency_rule": "A feature in dependencies must be done before this feature can be in-progress.",
+    "use_cases_rule": "use_cases lists actor:goal bullets — who can do what. Full Given/When/Then lives in docs/specs/FEAT-NNN.md."
+  },
+  "features": [
+    {
+      "id": "FEAT-001",
+      "name": "Cấu hình & lưu trữ (admin)",
+      "description": "Python config layer: file JSON/SQLite lưu lịch tuần (khung giờ mở thả để học), hạn mức 30 phút/ngày, trình độ lớp, mật khẩu admin (hash). Chỉ tài khoản admin Windows ghi được (ACL), tài khoản con chỉ đọc.",
+      "use_cases": [
+        "parent:đặt lịch học và hạn mức ngày",
+        "parent:đặt trình độ lớp và mật khẩu"
+      ],
+      "complexity": "medium",
+      "status": "planned",
+      "layer": "Backend",
+      "dependencies": [],
+      "evidence": null,
+      "created": "2026-11-16",
+      "updated": "2026-11-16"
+    },
+    {
+      "id": "FEAT-002",
+      "name": "Tự sinh bài tập Toán/Anh",
+      "description": "Tự sinh đề ngẫu nhiên theo trình độ lớp, chấm tự động, không cần ngân hàng câu hỏi nhập tay. Toán: phép tính theo cấp độ. Tiếng Anh: tự sinh từ vựng/trắc nghiệm (từ điển từ vựng tích hợp theo lớp, sinh câu hỏi nghĩa/điền từ/chọn đáp án nhiễu). Quy tắc đạt: trả lời đúng đủ số câu mới được vào.",
+      "use_cases": [
+        "child:làm bài để mở khoá máy",
+        "parent:đặt trình độ lớp và số câu cần đúng"
+      ],
+      "complexity": "medium",
+      "status": "planned",
+      "layer": "Backend",
+      "dependencies": [],
+      "evidence": null,
+      "created": "2026-11-16",
+      "updated": "2026-11-16"
+    },
+    {
+      "id": "FEAT-003",
+      "name": "Bộ đếm giờ 30 phút/ngày",
+      "description": "Theo dõi thời gian sử dụng thực của tài khoản con (chỉ tính khi phiên đang active, không tính lúc khoá), reset mỗi ngày, bền vững qua reboot, chống chỉnh đồng hồ hệ thống (dùng monotonic/lưu mốc). Trong khung giờ học thì không trừ quota.",
+      "use_cases": [
+        "child:dùng máy tối đa 30 phút/ngày",
+        "child:học tự do trong khung giờ học"
+      ],
+      "complexity": "medium",
+      "status": "planned",
+      "layer": "Backend",
+      "dependencies": [],
+      "evidence": null,
+      "created": "2026-11-16",
+      "updated": "2026-11-16"
+    },
+    {
+      "id": "FEAT-004",
+      "name": "Màn hình kiosk phủ toàn màn hình",
+      "description": "UI full-screen luôn on-top cho tài khoản con: hiện bài tập, cho vào khi đạt, che desktop khi hết quota/ngoài giờ. Hiển thị thời gian còn lại, cảnh báo trước khi hết giờ.",
+      "use_cases": [
+        "child:làm bài tập trước khi vào máy"
+      ],
+      "complexity": "large",
+      "status": "planned",
+      "layer": "Frontend",
+      "dependencies": [],
+      "evidence": null,
+      "created": "2026-11-16",
+      "updated": "2026-11-16"
+    },
+    {
+      "id": "FEAT-005",
+      "name": "Windows Service giám sát & chống bypass",
+      "description": "Service chạy SYSTEM tự khởi động, theo dõi phiên của tài khoản con, tự bật lại kiosk nếu bị tắt, chặn Task Manager/safe-mode đường dễ, tài khoản con là user thường. Cài đặt/gỡ qua script bằng tài khoản admin của phụ huynh.",
+      "use_cases": [
+        "parent:đảm bảo con không tắt được công cụ"
+      ],
+      "complexity": "large",
+      "status": "planned",
+      "layer": "Backend",
+      "dependencies": [],
+      "evidence": null,
+      "created": "2026-11-16",
+      "updated": "2026-11-16"
+    },
+    {
+      "id": "FEAT-006",
+      "name": "Giao diện quản trị phụ huynh",
+      "description": "App/GUI chạy từ tài khoản admin, bảo vệ bằng mật khẩu: sửa lịch tuần, hạn mức, trình độ lớp, quản lý ngân hàng câu hỏi, xem nhật ký sử dụng, cộng/trừ thời gian tạm thời.",
+      "use_cases": [
+        "parent:cấu hình mọi thứ từ tài khoản admin",
+        "parent:xem nhật ký sử dụng"
+      ],
+      "complexity": "large",
+      "status": "planned",
+      "layer": "Full-stack",
+      "dependencies": [],
+      "evidence": null,
+      "created": "2026-11-16",
+      "updated": "2026-11-16"
+    }
+  ]
+}

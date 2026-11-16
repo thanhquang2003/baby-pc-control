@@ -1,0 +1,37 @@
+{
+  "_template_version": "1.0.0",
+  "_notes": {
+    "status_values": [
+      "open",
+      "in-progress",
+      "done",
+      "wont-do"
+    ],
+    "priority_values": [
+      "high",
+      "medium",
+      "low"
+    ],
+    "id_format": "TASK-NNN",
+    "evidence_rule": "Tasks cannot move to done without evidence."
+  },
+  "tasks": [
+    {
+      "id": "TASK-001",
+      "title": "Thiết lập môi trường Python + đóng gói PyInstaller + script cài đặt service",
+      "description": "Cấu trúc dự án Python, pytest, pyinstaller, pywin32; cập nhật init.sh cho stack này; script install/uninstall service.",
+      "type": "infra",
+      "priority": "high",
+      "status": "open",
+      "depends_on": [],
+      "blocks_feature": null,
+      "assigned_session": null,
+      "started": null,
+      "completed_session": null,
+      "fix_commit": null,
+      "evidence": null,
+      "notes": null,
+      "work_log": []
+    }
+  ]
+}
