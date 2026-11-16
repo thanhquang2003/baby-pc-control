@@ -21,10 +21,10 @@
         "parent:đặt trình độ lớp và mật khẩu"
       ],
       "complexity": "medium",
-      "status": "planned",
+      "status": "done",
       "layer": "Backend",
       "dependencies": [],
-      "evidence": null,
+      "evidence": "Local squash-merge 8a36a16 (no remote/PR). 14 tests passed via init.sh --verify",
       "created": "2026-11-16",
       "updated": "2026-11-16"
     },
