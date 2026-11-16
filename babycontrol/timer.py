@@ -17,6 +17,7 @@ from .config import Config, usage_dir
 # A gap longer than this between ticks (sleep, hibernate, service stop) is not
 # counted as usage beyond this cap.
 MAX_TICK_SECONDS = 120
+HISTORY_DAYS = 60
 
 
 class AccessState(Enum):
@@ -41,10 +42,11 @@ class UsageTracker:
                 "max_date_seen": raw.get("max_date_seen", raw["date"]),
                 "used_seconds": float(raw.get("used_seconds", 0)),
                 "bonus_seconds": float(raw.get("bonus_seconds", 0)),
+                "history": {str(k): float(v) for k, v in raw.get("history", {}).items()},
             }
-        except (OSError, ValueError, KeyError):
+        except (OSError, ValueError, KeyError, AttributeError):
             return {"date": "", "max_date_seen": "", "used_seconds": 0.0,
-                    "bonus_seconds": 0.0}
+                    "bonus_seconds": 0.0, "history": {}}
 
     def _save(self) -> None:
         self._path.parent.mkdir(parents=True, exist_ok=True)
@@ -58,6 +60,12 @@ class UsageTracker:
         effective = max(today, self._state["max_date_seen"])
         self._state["max_date_seen"] = effective
         if self._state["date"] != effective:
+            previous = self._state["date"]
+            if previous and self._state["used_seconds"] > 0:
+                history = self._state["history"]
+                history[previous] = round(self._state["used_seconds"])
+                for old in sorted(history)[:-HISTORY_DAYS]:
+                    del history[old]
             self._state.update(date=effective, used_seconds=0.0, bonus_seconds=0.0)
 
     # --- public API -----------------------------------------------------
@@ -69,6 +77,14 @@ class UsageTracker:
         self._roll(now)
         total = config.daily_limit_minutes * 60 + self._state["bonus_seconds"]
         return max(0.0, total - self._state["used_seconds"])
+
+    def history(self, now: datetime) -> dict[str, float]:
+        """Seconds used per day (finished days plus today), oldest first."""
+        self._roll(now)
+        result = dict(self._state["history"])
+        if self._state["used_seconds"] > 0:
+            result[self._state["date"]] = self._state["used_seconds"]
+        return dict(sorted(result.items()))
 
     def add_bonus(self, seconds: float, now: datetime) -> None:
         """Parent grants extra time for today (negative values are ignored)."""
