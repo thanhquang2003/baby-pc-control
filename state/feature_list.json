@@ -99,10 +99,10 @@
         "parent:xem nhật ký sử dụng"
       ],
       "complexity": "large",
-      "status": "planned",
+      "status": "done",
       "layer": "Full-stack",
       "dependencies": [],
-      "evidence": null,
+      "evidence": "Local squash-merge ba99bc0 (no remote/PR). Admin logic tested (84 tests); Tk UI compile-checked only, needs Windows manual test",
       "created": "2026-11-16",
       "updated": "2026-11-16"
     }
