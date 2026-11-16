@@ -22,19 +22,23 @@
       "description": "Cấu trúc dự án Python, pytest, pyinstaller, pywin32; cập nhật init.sh cho stack này; script install/uninstall service.",
       "type": "infra",
       "priority": "high",
-      "status": "in-progress",
+      "status": "done",
       "depends_on": [],
       "blocks_feature": null,
       "assigned_session": "session-1",
       "started": "2026-11-16",
-      "completed_session": null,
-      "fix_commit": null,
-      "evidence": null,
+      "completed_session": "session-1",
+      "fix_commit": "e80111e",
+      "evidence": "Local squash-merge e80111e (no remote/PR). bash init.sh --verify: 1 passed, ALL CHECKS PASSED",
       "notes": null,
       "work_log": [
         {
           "date": "2026-11-16",
           "note": "Started; no git remote so merging locally instead of PR"
+        },
+        {
+          "date": "2026-11-16",
+          "note": "Done: skeleton, venv gate, build/install scripts"
         }
       ]
     }
