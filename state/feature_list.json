@@ -83,10 +83,10 @@
         "parent:đảm bảo con không tắt được công cụ"
       ],
       "complexity": "large",
-      "status": "planned",
+      "status": "done",
       "layer": "Backend",
       "dependencies": [],
-      "evidence": null,
+      "evidence": "Local squash-merge 6ead97e (no remote/PR). Watchdog logic tested (74 tests); win32 service code compile-checked only, needs Windows manual test",
       "created": "2026-11-16",
       "updated": "2026-11-16"
     },
