@@ -53,10 +53,10 @@
         "child:học tự do trong khung giờ học"
       ],
       "complexity": "medium",
-      "status": "planned",
+      "status": "done",
       "layer": "Backend",
       "dependencies": [],
-      "evidence": null,
+      "evidence": "Local squash-merge 146142b (no remote/PR). 47 tests passed via init.sh --verify",
       "created": "2026-11-16",
       "updated": "2026-11-16"
     },
