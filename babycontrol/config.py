@@ -34,6 +34,11 @@ def data_dir() -> Path:
     return Path.home() / ".babycontrol"
 
 
+def usage_dir(base: Path | None = None) -> Path:
+    """Sub-directory the child's kiosk may write (usage counters only)."""
+    return (base or data_dir()) / "usage"
+
+
 def parse_hhmm(value: str) -> time:
     try:
         hour, minute = value.split(":")
@@ -139,8 +144,17 @@ def save_config(config: Config, base: Path | None = None) -> Path:
     return path
 
 
+def prepare_data_dir(base: Path | None = None) -> Path:
+    """Create the data directory tree and lock it down. Run as admin/SYSTEM."""
+    root = base or data_dir()
+    usage_dir(root).mkdir(parents=True, exist_ok=True)
+    harden_acl(root)
+    return root
+
+
 def harden_acl(directory: Path) -> None:
-    """Windows: admins/SYSTEM full control, other users read-only. No-op elsewhere."""
+    """Windows: admins/SYSTEM full control, other users read-only, except the
+    `usage` sub-directory which users may modify. No-op elsewhere."""
     if sys.platform != "win32":
         return
     subprocess.run(
@@ -153,3 +167,10 @@ def harden_acl(directory: Path) -> None:
         check=False,
         capture_output=True,
     )
+    usage = usage_dir(directory)
+    if usage.exists():
+        subprocess.run(
+            ["icacls", str(usage), "/grant:r", "*S-1-5-32-545:(OI)(CI)M"],
+            check=False,
+            capture_output=True,
+        )

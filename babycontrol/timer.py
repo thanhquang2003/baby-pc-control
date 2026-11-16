@@ -12,7 +12,7 @@ from datetime import date, datetime
 from enum import Enum
 from pathlib import Path
 
-from .config import Config, data_dir
+from .config import Config, usage_dir
 
 # A gap longer than this between ticks (sleep, hibernate, service stop) is not
 # counted as usage beyond this cap.
@@ -28,7 +28,7 @@ class AccessState(Enum):
 
 class UsageTracker:
     def __init__(self, base: Path | None = None) -> None:
-        self._path = (base or data_dir()) / "usage.json"
+        self._path = (base or usage_dir()) / "usage.json"
         self._last_mono: float | None = None
         self._state = self._load()
 

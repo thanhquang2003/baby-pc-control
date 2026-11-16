@@ -10,7 +10,7 @@ from __future__ import annotations
 import sys
 from pathlib import Path
 
-from .config import ConfigError, load_config
+from .config import ConfigError, load_config, usage_dir
 from .controller import DEFAULT_OVERRIDE_MINUTES, KioskController, View
 from .timer import AccessState, UsageTracker
 
@@ -19,14 +19,30 @@ BG = "#1e2a3a"
 FG = "#ffffff"
 
 
+ADMIN_SID = "S-1-5-32-544"
+
+
+def groups_contain_admin(whoami_output: str) -> bool:
+    """True if the Administrators SID is in `whoami /groups` output.
+
+    A non-elevated administrator still lists the group (as deny-only), so this
+    identifies admin *accounts*, unlike IsUserAnAdmin() which depends on UAC.
+    """
+    return ADMIN_SID in whoami_output
+
+
 def is_admin() -> bool:
     if sys.platform != "win32":
         return False
-    import ctypes
+    import subprocess
     try:
-        return bool(ctypes.windll.shell32.IsUserAnAdmin())
+        out = subprocess.run(
+            ["whoami", "/groups", "/fo", "csv"], capture_output=True, text=True,
+            timeout=15, creationflags=0x08000000,   # CREATE_NO_WINDOW
+        ).stdout
     except Exception:
         return False
+    return groups_contain_admin(out)
 
 
 def format_mmss(seconds: float) -> str:
@@ -39,7 +55,7 @@ class KioskApp:
         import tkinter as tk
         self.tk = tk
         self.base = base
-        self.controller = KioskController(load_config(base), UsageTracker(base))
+        self.controller = KioskController(load_config(base), UsageTracker(usage_dir(base)))
         self._ticks = 0
         self._shown_question = None
         self._feedback = ""
