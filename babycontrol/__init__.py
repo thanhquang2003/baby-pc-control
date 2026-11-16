@@ -1,0 +1,3 @@
+"""BabyControl - Windows parental control tool."""
+
+__version__ = "0.1.0"

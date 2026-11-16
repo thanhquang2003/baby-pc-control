@@ -26,8 +26,12 @@ FAILED=0
 # ---------------------------------------------------------------------------
 do_sync() {
   info "Syncing git..."
-  git fetch origin --quiet
-  git rebase --autostash origin/main --quiet && ok "Rebased on main" || fail "Rebase failed"
+  if git remote get-url origin >/dev/null 2>&1; then
+    git fetch origin --quiet
+    git rebase --autostash origin/main --quiet && ok "Rebased on main" || fail "Rebase failed"
+  else
+    warn "No git remote configured - skipping fetch/rebase"
+  fi
 
   # Fast-forward the main worktree when running inside a git worktree
   _MAIN_WT=$(git worktree list --porcelain 2>/dev/null \
@@ -72,8 +76,11 @@ install_deps() {
   # if go mod download; then ok "Modules fetched"
   # else fail "go mod download failed"; fi
 
-  # ── Default ───────────────────────────────────────────────────────────────
-  ok "No dependency install configured — uncomment a stack block above or add your own"
+  info "Installing dependencies..."
+  [[ -d .venv ]] || python3 -m venv .venv
+  if .venv/bin/python -m pip install -q -r requirements-dev.txt 2>/dev/null \
+     || .venv/Scripts/python -m pip install -q -r requirements-dev.txt; then ok "Dependencies installed"
+  else fail "pip install failed"; fi
 }
 
 # ---------------------------------------------------------------------------
@@ -105,8 +112,9 @@ check_project() {
   # if go test ./...; then ok "Tests passed"
   # else fail "go test failed"; fi
 
-  # ── Default ───────────────────────────────────────────────────────────────
-  ok "No project checks configured — uncomment a stack block above or add your own"
+  info "Running tests..."
+  if .venv/bin/python -m pytest -q 2>/dev/null || .venv/Scripts/python -m pytest -q; then ok "Tests passed"
+  else fail "Tests failed"; fi
 }
 
 # ---------------------------------------------------------------------------
