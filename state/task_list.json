@@ -22,16 +22,21 @@
       "description": "Cấu trúc dự án Python, pytest, pyinstaller, pywin32; cập nhật init.sh cho stack này; script install/uninstall service.",
       "type": "infra",
       "priority": "high",
-      "status": "open",
+      "status": "in-progress",
       "depends_on": [],
       "blocks_feature": null,
-      "assigned_session": null,
-      "started": null,
+      "assigned_session": "session-1",
+      "started": "2026-11-16",
       "completed_session": null,
       "fix_commit": null,
       "evidence": null,
       "notes": null,
-      "work_log": []
+      "work_log": [
+        {
+          "date": "2026-11-16",
+          "note": "Started; no git remote so merging locally instead of PR"
+        }
+      ]
     }
   ]
 }
