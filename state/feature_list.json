@@ -68,10 +68,10 @@
         "child:làm bài tập trước khi vào máy"
       ],
       "complexity": "large",
-      "status": "planned",
+      "status": "done",
       "layer": "Frontend",
       "dependencies": [],
-      "evidence": null,
+      "evidence": "Local squash-merge 770d133 (no remote/PR). Controller tested (62 tests); Tk UI compile-checked only, needs Windows manual test",
       "created": "2026-11-16",
       "updated": "2026-11-16"
     },
