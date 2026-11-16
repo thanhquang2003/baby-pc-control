@@ -37,10 +37,10 @@
         "parent:đặt trình độ lớp và số câu cần đúng"
       ],
       "complexity": "medium",
-      "status": "planned",
+      "status": "done",
       "layer": "Backend",
       "dependencies": [],
-      "evidence": null,
+      "evidence": "Local squash-merge 0caa569 (no remote/PR). 38 tests passed via init.sh --verify",
       "created": "2026-11-16",
       "updated": "2026-11-16"
     },
