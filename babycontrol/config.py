@@ -66,7 +66,8 @@ class StudyWindow:
 class Config:
     daily_limit_minutes: int = DEFAULT_DAILY_LIMIT_MINUTES
     grade: int = 3
-    required_correct: int = 5
+    math_questions: int = 3      # correct Math answers needed per unlock
+    english_questions: int = 2   # correct English answers needed per unlock
     study_windows: list[StudyWindow] = field(default_factory=list)
     password_salt: str = ""
     password_hash: str = ""
@@ -76,8 +77,11 @@ class Config:
             raise ConfigError("daily_limit_minutes must be 1..1440")
         if not 1 <= self.grade <= 12:
             raise ConfigError("grade must be 1..12")
-        if not 1 <= self.required_correct <= 50:
-            raise ConfigError("required_correct must be 1..50")
+        for name in ("math_questions", "english_questions"):
+            if not 0 <= getattr(self, name) <= 50:
+                raise ConfigError(f"{name} must be 0..50")
+        if self.math_questions + self.english_questions < 1:
+            raise ConfigError("at least one question per unlock is required")
         for window in self.study_windows:
             window.validate()
 

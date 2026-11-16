@@ -161,26 +161,40 @@ def english_question(grade: int, rng: random.Random) -> Question:
 # --- Session ------------------------------------------------------------
 
 class ExerciseSession:
-    """Child must answer `required_correct` questions correctly to pass.
+    """Child must answer `math_questions` Math and `english_questions` English
+    questions correctly to pass.
 
-    Math and English alternate. A wrong answer is replaced by a fresh
-    question so the answer cannot simply be retried.
+    Subjects alternate while both have questions left. A wrong answer is
+    replaced by a fresh question of the same subject, so the answer cannot
+    simply be retried.
     """
 
-    def __init__(self, grade: int, required_correct: int,
+    def __init__(self, grade: int, math_questions: int, english_questions: int,
                  rng: random.Random | None = None) -> None:
         self.grade = grade
-        self.required_correct = required_correct
+        self._left = {"math": math_questions, "english": english_questions}
+        self.required_correct = math_questions + english_questions
         self.correct = 0
         self.wrong = 0
         self._rng = rng or random.Random()
-        self._turn = 0
+        self._last_subject = "english"   # so Math is asked first
         self.current: Question | None = None
         self._advance()
 
+    def _next_subject(self) -> str | None:
+        order = ["math", "english"] if self._last_subject == "english" else ["english", "math"]
+        for subject in order:
+            if self._left[subject] > 0:
+                return subject
+        return None
+
     def _advance(self) -> None:
-        make = math_question if self._turn % 2 == 0 else english_question
-        self._turn += 1
+        subject = self._next_subject()
+        if subject is None:
+            self.current = None
+            return
+        make = math_question if subject == "math" else english_question
+        self._last_subject = subject
         self.current = make(self.grade, self._rng)
 
     @property
@@ -194,10 +208,8 @@ class ExerciseSession:
         ok = self.current.check(response)
         if ok:
             self.correct += 1
+            self._left[self.current.subject] -= 1
         else:
             self.wrong += 1
-        if self.passed:
-            self.current = None
-        else:
-            self._advance()
+        self._advance()
         return ok

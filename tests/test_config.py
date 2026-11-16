@@ -17,11 +17,13 @@ def test_defaults_when_missing(tmp_path):
 
 
 def test_roundtrip(tmp_path):
-    config = Config(grade=5, study_windows=[StudyWindow([0, 1], "19:00", "20:30")])
+    config = Config(grade=5, math_questions=4, english_questions=1,
+                    study_windows=[StudyWindow([0, 1], "19:00", "20:30")])
     config.set_password("secret")
     save_config(config, tmp_path)
     loaded = load_config(tmp_path)
     assert loaded.grade == 5
+    assert (loaded.math_questions, loaded.english_questions) == (4, 1)
     assert loaded.study_windows[0].days == [0, 1]
     assert loaded.verify_password("secret")
     assert not loaded.verify_password("wrong")
@@ -47,7 +49,8 @@ def test_study_window_matching():
 
 
 @pytest.mark.parametrize("kwargs", [
-    {"daily_limit_minutes": 0}, {"grade": 13}, {"required_correct": 0},
+    {"daily_limit_minutes": 0}, {"grade": 13}, {"math_questions": -1},
+    {"english_questions": 51}, {"math_questions": 0, "english_questions": 0},
 ])
 def test_invalid_values_rejected(kwargs, tmp_path):
     with pytest.raises(ConfigError):

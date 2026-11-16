@@ -57,33 +57,43 @@ def test_vocab_bands_cover_all_grades():
         assert len({en for en, _ in words}) == len(words)
 
 
-def test_session_pass_after_required_correct():
-    session = ExerciseSession(3, 4, rng=random.Random(0))
-    while not session.passed:
-        assert session.submit(session.current.answer)
-    assert session.correct == 4 and session.wrong == 0
-    assert session.current is None
-
-
-def test_wrong_answer_does_not_count_and_gets_new_question():
-    session = ExerciseSession(3, 2, rng=random.Random(0))
-    assert not session.submit("definitely wrong ###")
-    assert session.correct == 0 and session.wrong == 1
-    assert not session.passed
-    assert session.current is not None
-
-
-def test_session_alternates_subjects():
-    session = ExerciseSession(3, 4, rng=random.Random(5))
+def _run_all_correct(session):
     subjects = []
     while not session.passed:
         subjects.append(session.current.subject)
         session.submit(session.current.answer)
-    assert subjects == ["math", "english", "math", "english"]
+    return subjects
+
+
+def test_session_pass_after_required_counts():
+    session = ExerciseSession(3, 3, 1, rng=random.Random(0))
+    subjects = _run_all_correct(session)
+    assert session.correct == 4 and session.wrong == 0
+    assert subjects.count("math") == 3 and subjects.count("english") == 1
+    assert session.current is None
+
+
+def test_wrong_answer_does_not_count_and_keeps_subject_quota():
+    session = ExerciseSession(3, 2, 2, rng=random.Random(0))
+    assert not session.submit("definitely wrong ###")
+    assert session.correct == 0 and session.wrong == 1
+    assert not session.passed
+    subjects = _run_all_correct(session)
+    assert subjects.count("math") == 2 and subjects.count("english") == 2
+
+
+def test_session_alternates_subjects_then_drains_remaining():
+    session = ExerciseSession(3, 3, 1, rng=random.Random(5))
+    assert _run_all_correct(session) == ["math", "english", "math", "math"]
+
+
+def test_only_one_subject_configured():
+    session = ExerciseSession(3, 0, 3, rng=random.Random(5))
+    assert _run_all_correct(session) == ["english"] * 3
 
 
 def test_submit_after_pass_is_ignored():
-    session = ExerciseSession(1, 1, rng=random.Random(0))
+    session = ExerciseSession(1, 1, 0, rng=random.Random(0))
     session.submit(session.current.answer)
     assert session.passed
     assert session.submit("anything") is False
