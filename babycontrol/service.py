@@ -19,10 +19,14 @@ import sys
 import time
 from pathlib import Path
 
+from datetime import datetime
+
+from .blocklist import effective_blocklist, flush_dns, kill_blocked, sync_hosts
 from .config import load_config, prepare_data_dir
+from .timer import UsageTracker
 from .watchdog import Action, SessionInfo, Watchdog
 
-CYCLE_SECONDS = 5
+CYCLE_SECONDS = 3
 KIOSK_EXE = "babycontrol-kiosk.exe"
 CREATE_NO_WINDOW = 0x08000000
 
@@ -145,6 +149,7 @@ class BabyControlService(win32serviceutil.ServiceFramework if sys.platform == "w
         win32serviceutil.ServiceFramework.__init__(self, args)
         self._stop_event = win32event.CreateEvent(None, 0, 0, None)
         self._watchdog = Watchdog()
+        self._tracker = UsageTracker()     # read-only use: is parent mode active?
 
     def SvcStop(self):
         self.ReportServiceStatus(win32service.SERVICE_STOP_PENDING)
@@ -162,7 +167,23 @@ class BabyControlService(win32serviceutil.ServiceFramework if sys.platform == "w
                 self.cycle()
             except Exception as exc:   # never let the loop die
                 log_error(f"watchdog cycle failed: {exc}")
+            try:
+                self.enforce_blocklist()
+            except Exception as exc:
+                log_error(f"blocklist enforcement failed: {exc}")
         servicemanager.LogInfoMsg("BabyControl service stopped")
+
+    def enforce_blocklist(self) -> None:
+        """Kill blocked apps and keep the hosts file in line with the blocked
+        sites. If the config is unreadable nothing changes (last state stays)."""
+        try:
+            config = load_config()
+        except Exception:
+            return
+        parent_mode = self._tracker.pause_remaining(datetime.now()) > 0
+        apps, sites = effective_blocklist(config, parent_mode)
+        kill_blocked(apps)
+        sync_hosts(sites, flush=flush_dns)
 
     def cycle(self) -> None:
         sessions, sids = observe_sessions()

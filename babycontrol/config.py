@@ -17,6 +17,7 @@ from dataclasses import dataclass, field, asdict
 from datetime import datetime, time
 from pathlib import Path
 
+from .blocklist import MAX_ENTRIES, BlockEntryError, normalize_app, normalize_site
 from .secure_store import SecureStore, StoreError
 
 DEFAULT_DAILY_LIMIT_MINUTES = 30
@@ -77,6 +78,8 @@ class Config:
     math_questions: int = 3      # correct Math answers needed per unlock
     english_questions: int = 2   # correct English answers needed per unlock
     block_task_manager: bool = True   # disable Task Manager for supervised users
+    blocked_apps: list[str] = field(default_factory=list)    # e.g. "steam.exe"
+    blocked_sites: list[str] = field(default_factory=list)   # e.g. "youtube.com"
     study_windows: list[StudyWindow] = field(default_factory=list)
     password_salt: str = ""
     password_hash: str = ""
@@ -93,6 +96,16 @@ class Config:
             raise ConfigError("at least one question per unlock is required")
         for window in self.study_windows:
             window.validate()
+        for label, entries, normalize in (("blocked_apps", self.blocked_apps, normalize_app),
+                                          ("blocked_sites", self.blocked_sites, normalize_site)):
+            if len(entries) > MAX_ENTRIES:
+                raise ConfigError(f"{label}: at most {MAX_ENTRIES} entries")
+            for entry in entries:
+                try:
+                    if normalize(entry) != entry:
+                        raise ConfigError(f"{label}: {entry!r} is not in normalized form")
+                except BlockEntryError as exc:
+                    raise ConfigError(f"{label}: {exc}") from exc
 
     def is_study_time(self, now: datetime) -> bool:
         return any(w.contains(now) for w in self.study_windows)

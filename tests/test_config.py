@@ -123,3 +123,40 @@ def test_invalid_window_rejected(window):
 def test_short_password_rejected():
     with pytest.raises(ConfigError):
         Config().set_password("abc")
+
+
+# --- FEAT-013: blocked apps and sites --------------------------------------------
+
+def test_blocked_lists_roundtrip_and_default_empty(tmp_path):
+    assert Config().blocked_apps == [] and Config().blocked_sites == []
+    config = Config(blocked_apps=["steam.exe", "league of legends.exe"],
+                    blocked_sites=["youtube.com", "xn--bcher-kva.de"])
+    save_config(config, tmp_path)
+    loaded = load_config(tmp_path)
+    assert loaded.blocked_apps == ["steam.exe", "league of legends.exe"]
+    assert loaded.blocked_sites == ["youtube.com", "xn--bcher-kva.de"]
+    assert b"youtube" not in (tmp_path / "config.dat").read_bytes()    # encrypted
+
+
+@pytest.mark.parametrize("kwargs", [
+    {"blocked_apps": ["Steam.exe"]},               # not normalized
+    {"blocked_apps": ["explorer.exe"]},            # protected system process
+    {"blocked_apps": ["bad|name.exe"]},
+    {"blocked_sites": ["https://youtube.com/x"]},  # a link, not a domain
+    {"blocked_sites": ["www.youtube.com"]},
+    {"blocked_sites": ["192.168.0.1"]},
+    {"blocked_apps": [f"app{i}.exe" for i in range(201)]},
+    {"blocked_sites": [f"site{i}.com" for i in range(201)]},
+])
+def test_invalid_block_entries_rejected(kwargs, tmp_path):
+    with pytest.raises(ConfigError):
+        save_config(Config(**kwargs), tmp_path)
+
+
+def test_config_saved_before_blocking_existed_still_loads(tmp_path):
+    (tmp_path / "config.json").write_text(
+        '{"daily_limit_minutes": 25, "grade": 4, "math_questions": 2, '
+        '"english_questions": 2, "study_windows": [], "password_salt": "", '
+        '"password_hash": ""}')
+    config = load_config(tmp_path)
+    assert config.blocked_apps == [] and config.blocked_sites == []
