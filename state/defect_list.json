@@ -52,6 +52,24 @@
       "evidence": "https://github.com/thanhquang2003/baby-pc-control/pull/5 (squash 4261f91). 129 tests passed (mocked Tk); needs re-test on Windows",
       "notes": null,
       "work_log": []
+    },
+    {
+      "id": "BUG-003",
+      "title": "Vừa tạo mật khẩu xong thì máy khoá sau vài giây; thay đổi từ công cụ phụ huynh không tới kiosk",
+      "description": "Kiosk nạp usage một lần và chỉ ghi đè, công cụ phụ huynh ghi file riêng nên thêm giờ/tạm dừng bị mất. Kiosk nạp lại cấu hình mỗi 10s nên thấy mật khẩu mới là khoá ngay đè lên cửa sổ cấu hình. Sửa: UsageTracker tự đồng bộ file mỗi lần dùng (hợp nhất an toàn), công cụ phụ huynh mở thì đặt chế độ bố mẹ (gia hạn định kỳ), đóng thì kết thúc và khi đó mới áp dụng khoá.",
+      "severity": "critical",
+      "status": "in-progress",
+      "affected_feature": "FEAT-008",
+      "layer": "Full-stack",
+      "depends_on": [],
+      "reported_session": "2026-11-17T06:31:49.991Z",
+      "assigned_session": "session-2",
+      "started": "2026-11-17",
+      "resolved_session": null,
+      "fix_commit": null,
+      "evidence": null,
+      "notes": null,
+      "work_log": []
     }
   ]
 }

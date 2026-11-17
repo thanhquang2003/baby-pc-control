@@ -172,6 +172,21 @@
       "evidence": "https://github.com/thanhquang2003/baby-pc-control/pull/6 (squash 30541c6). 134 tests passed; Tk screen untested on Windows",
       "created": "2026-11-17",
       "updated": "2026-11-17"
+    },
+    {
+      "id": "FEAT-011",
+      "name": "Bố mẹ tự chọn thời gian dùng máy (không cố định 2 giờ)",
+      "description": "Màn hình khoá có ô nhập số phút (5-720) dùng chung cho Thêm giờ cho con và Bố mẹ dùng máy; bỏ cố định 15 phút và 2 giờ, nhớ giá trị mặc định hợp lý.",
+      "use_cases": [
+        "parent:chọn số phút làm việc trước khi mở khoá"
+      ],
+      "complexity": "small",
+      "status": "planned",
+      "layer": "Full-stack",
+      "dependencies": [],
+      "evidence": null,
+      "created": "2026-11-17",
+      "updated": "2026-11-17"
     }
   ]
 }
