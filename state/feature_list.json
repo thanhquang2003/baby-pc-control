@@ -187,6 +187,22 @@
       "evidence": "https://github.com/thanhquang2003/baby-pc-control/pull/8 (squash 84f7a6c). 167 tests passed; Tk screen untested on Windows",
       "created": "2026-11-17",
       "updated": "2026-11-17"
+    },
+    {
+      "id": "FEAT-012",
+      "name": "GitHub Actions build sẵn .exe và đóng gói bản cài nhanh",
+      "description": "CI chạy test trên windows-latest cho PR/push. Workflow release build 3 file exe bằng PyInstaller trên Windows, đóng gói ZIP (exe + trình cài + hướng dẫn) kèm SHA256, đính vào GitHub Release khi đẩy tag v*. Trình cài setup.ps1 nhận ra bản build sẵn và bỏ qua bước cài Python/build.",
+      "use_cases": [
+        "parent:tải một file ZIP từ Releases rồi cài ngay không cần Python",
+        "dev:mỗi lần đẩy tag tự có file exe mới"
+      ],
+      "complexity": "medium",
+      "status": "in-progress",
+      "layer": "Full-stack",
+      "dependencies": [],
+      "evidence": null,
+      "created": "2026-11-17",
+      "updated": "2026-11-17"
     }
   ]
 }
