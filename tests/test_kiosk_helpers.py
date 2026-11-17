@@ -81,3 +81,15 @@ def test_hud_only_repositioned_when_text_changes():
     app._show_hud(View(AccessState.ALLOWED, 540))
     assert app.hud.geometry.call_count == 2
     assert app.hud.deiconify.call_count == 1
+
+
+def test_progress_text_shows_each_subject():
+    view = View(AccessState.NEED_EXERCISE, 0, progress={"math": (1, 3), "english": (0, 2)})
+    assert kiosk.progress_text(view) == "Toán 1/3  ·  Tiếng Anh 0/2"
+
+
+def test_progress_text_hides_disabled_subject_and_has_fallback():
+    only_english = View(AccessState.NEED_EXERCISE, 0, progress={"math": (0, 0), "english": (1, 3)})
+    assert kiosk.progress_text(only_english) == "Tiếng Anh 1/3"
+    no_progress = View(AccessState.NEED_EXERCISE, 0, correct=1, required=4)
+    assert kiosk.progress_text(no_progress) == "Đã đúng 1/4"

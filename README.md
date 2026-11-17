@@ -10,7 +10,8 @@ Công cụ quản lý giờ dùng máy tính Windows cho trẻ em, viết bằng
 
 - **Giới hạn giờ mỗi ngày:** mặc định 30 phút, phụ huynh chỉnh được. Chỉ tính khi con đang dùng máy.
 - **Làm bài trước khi vào máy:** Toán và Tiếng Anh tự sinh theo lớp (1–12), không cần nhập ngân hàng câu hỏi.
-  Số câu Toán và số câu Tiếng Anh mỗi lần cấu hình riêng. Trả lời sai thì được câu mới.
+  Số câu Toán và số câu Tiếng Anh mỗi lần cấu hình riêng. Mỗi môn phải đủ số câu **đúng** đã đặt; trả lời sai thì không tính
+  và được bù ngay bằng một câu khác **cùng môn**, nên con không học lệch. Màn hình hiện tiến độ từng môn (ví dụ "Toán 1/3 · Tiếng Anh 0/2").
 - **Khung giờ mở thả để học:** lịch theo tuần (ví dụ T2–T6 19:00–20:30). Trong khung này con dùng máy tự do,
   không phải làm bài và không bị trừ giờ.
 - **Màn hình kiosk:** phủ toàn màn hình khi cần làm bài hoặc hết giờ; có đồng hồ đếm ngược và cảnh báo còn 5 phút, 1 phút.

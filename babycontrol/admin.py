@@ -190,8 +190,8 @@ def run_ui(base: Path | None = None) -> None:
         for row, (label, key, value, lo, hi) in enumerate([
             ("Phút được dùng mỗi ngày", "limit", cfg.daily_limit_minutes, 1, 1440),
             ("Lớp (1-12)", "grade", cfg.grade, 1, 12),
-            ("Số câu Toán mỗi lần", "math", cfg.math_questions, 0, 50),
-            ("Số câu Tiếng Anh mỗi lần", "english", cfg.english_questions, 0, 50),
+            ("Toán: số câu ĐÚNG cần đạt mỗi lần", "math", cfg.math_questions, 0, 50),
+            ("Tiếng Anh: số câu ĐÚNG cần đạt mỗi lần", "english", cfg.english_questions, 0, 50),
         ]):
             ttk.Label(tab, text=label).grid(row=row, column=0, sticky="w", pady=6)
             var = tk.StringVar(value=str(value))
@@ -214,6 +214,10 @@ def run_ui(base: Path | None = None) -> None:
                 messagebox.showinfo("Đã lưu", "Đã lưu cài đặt")
 
         ttk.Button(tab, text="Lưu", command=save_settings).grid(row=5, column=0, pady=16)
+        ttk.Label(tab, wraplength=440, foreground="#555555",
+                  text="Mỗi môn phải đủ số câu đúng đã đặt. Trả lời sai thì không tính và được "
+                       "thêm một câu khác CÙNG MÔN, nên con không học lệch. Đặt 0 để bỏ một môn."
+                  ).grid(row=6, column=0, columnspan=2, sticky="w")
 
         # Study windows tab
         tab = ttk.Frame(notebook, padding=16)

@@ -164,15 +164,17 @@ class ExerciseSession:
     """Child must answer `math_questions` Math and `english_questions` English
     questions correctly to pass.
 
-    Subjects alternate while both have questions left. A wrong answer is
-    replaced by a fresh question of the same subject, so the answer cannot
-    simply be retried.
+    Subjects alternate while both have questions left. A wrong answer does not
+    count and is replaced right away by a fresh question of the same subject,
+    so the answer cannot simply be retried and each subject always gets its
+    full number of correct answers (no lopsided learning).
     """
 
     def __init__(self, grade: int, math_questions: int, english_questions: int,
                  rng: random.Random | None = None) -> None:
         self.grade = grade
-        self._left = {"math": math_questions, "english": english_questions}
+        self._total = {"math": math_questions, "english": english_questions}
+        self._left = dict(self._total)
         self.required_correct = math_questions + english_questions
         self.correct = 0
         self.wrong = 0
@@ -188,8 +190,13 @@ class ExerciseSession:
                 return subject
         return None
 
-    def _advance(self) -> None:
+    def _advance(self, same_subject: bool = False) -> None:
+        """Pick the next question. After a wrong answer (`same_subject`) the
+        replacement comes from the same subject, so a miss is made up right away
+        and neither subject ends up short."""
         subject = self._next_subject()
+        if same_subject and self._left[self._last_subject] > 0:
+            subject = self._last_subject
         if subject is None:
             self.current = None
             return
@@ -211,5 +218,10 @@ class ExerciseSession:
             self._left[self.current.subject] -= 1
         else:
             self.wrong += 1
-        self._advance()
+        self._advance(same_subject=not ok)
         return ok
+
+    def progress(self) -> dict[str, tuple[int, int]]:
+        """Correct answers so far vs. required, per subject."""
+        return {s: (self._total[s] - self._left[s], self._total[s])
+                for s in ("math", "english")}

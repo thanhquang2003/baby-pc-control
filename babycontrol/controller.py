@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import random
 import time
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Callable
 
@@ -25,6 +25,7 @@ class View:
     correct: int = 0
     required: int = 0
     warning: str | None = None   # "5min" | "1min" | None
+    progress: dict = field(default_factory=dict)   # subject -> (correct, required)
 
 
 class KioskController:
@@ -94,6 +95,7 @@ class KioskController:
             correct=session.correct if session else 0,
             required=session.required_correct if session else 0,
             warning=warning,
+            progress=session.progress() if session else {},
         )
 
     def submit(self, response: str) -> bool | None:

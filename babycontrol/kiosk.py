@@ -22,6 +22,16 @@ BG = "#1e2a3a"
 FG = "#ffffff"
 
 
+SUBJECT_NAMES = {"math": "Toán", "english": "Tiếng Anh"}
+
+
+def progress_text(view: View) -> str:
+    """e.g. 'Toán 1/3  ·  Tiếng Anh 0/2' (subjects with no questions are hidden)."""
+    parts = [f"{SUBJECT_NAMES[s]} {done}/{total}"
+             for s, (done, total) in view.progress.items() if total > 0]
+    return "  ·  ".join(parts) or f"Đã đúng {view.correct}/{view.required}"
+
+
 def format_mmss(seconds: float) -> str:
     seconds = max(0, int(seconds))
     return f"{seconds // 60:02d}:{seconds % 60:02d}"
@@ -107,7 +117,7 @@ class KioskApp:
         self._clear_body()
         tk = self.tk
         self._label("Làm bài để mở máy", 32, "#ffd54f")
-        self._label(f"Đã đúng {view.correct}/{view.required}", 16, "#9fb3c8")
+        self._label(progress_text(view), 16, "#9fb3c8")
         self._label(question.prompt, 28)
         if question.choices:
             for choice in question.choices:
