@@ -40,6 +40,10 @@ class KioskApp:
         self._ticks = 0
         self._shown_question = None
         self._feedback = ""
+        self._overlay_visible = False
+        self._hud_visible = False
+        self._hud_state = None
+        self.answer_entry = None
 
         self.root = tk.Tk()
         self.root.withdraw()
@@ -85,6 +89,7 @@ class KioskApp:
 
     # --- rendering ------------------------------------------------------
     def _clear_body(self) -> None:
+        self.answer_entry = None
         for child in self.body.winfo_children():
             child.destroy()
 
@@ -120,47 +125,77 @@ class KioskApp:
         self._label(self._feedback, 16, "#ff8a80")
 
     def _render_time_up(self) -> None:
-        self._shown_question = None
+        if self._shown_question == "time_up":   # already drawn: don't rebuild
+            return
+        self._shown_question = "time_up"
         self._clear_body()
         self._label("Hết giờ dùng máy hôm nay", 36, "#ffd54f")
         self._label("Hẹn con ngày mai nhé!", 22)
 
     def _render_config_error(self) -> None:
-        self._shown_question = None
+        if self._shown_question == "config_error":
+            return
+        self._shown_question = "config_error"
         self._clear_body()
         self._label("Máy đang bị khoá", 36, "#ff8a80")
         self._label("Không đọc được cài đặt. Nhờ bố mẹ kiểm tra giúp con nhé.", 22)
 
     def _show_overlay(self) -> None:
+        """Show the lock screen. This runs every second, so it must not grab
+        focus or move anything after the first time: that used to pull the text
+        cursor out of the answer box while the child was typing."""
         win = self.overlay
-        win.geometry(f"{win.winfo_screenwidth()}x{win.winfo_screenheight()}+0+0")
-        win.deiconify()
-        win.lift()
-        win.attributes("-topmost", True)
-        win.focus_force()
+        if not self._overlay_visible:
+            self._overlay_visible = True
+            win.geometry(f"{win.winfo_screenwidth()}x{win.winfo_screenheight()}+0+0")
+            win.deiconify()
+            win.lift()
+            win.focus_force()
+            return
+        win.lift()                      # stay on top, but leave focus alone
+        if win.focus_displayof() is None:   # lost focus to another window
+            win.focus_force()
+            self._focus_answer()
+
+    def _hide_overlay(self) -> None:
+        if self._overlay_visible:
+            self._overlay_visible = False
+            self.overlay.withdraw()
+        self._shown_question = None
+        self._feedback = ""
+
+    def _hide_hud(self) -> None:
+        if self._hud_visible:
+            self._hud_visible = False
+            self.hud.withdraw()
+
+    def _focus_answer(self) -> None:
+        if self.answer_entry is not None:
+            try:
+                self.answer_entry.focus_set()
+            except self.tk.TclError:
+                pass
 
     def _render(self, view: View) -> None:
         if view.state is AccessState.NEED_EXERCISE and view.question is not None:
             self._show_overlay()
             self._render_exercise(view)
-            self.hud.withdraw()
+            self._hide_hud()
         elif view.state is AccessState.NO_QUOTA:
             self._show_overlay()
             self._render_time_up()
-            self.hud.withdraw()
+            self._hide_hud()
         elif view.state is AccessState.CONFIG_ERROR:
             self._show_overlay()
             self._render_config_error()
-            self.hud.withdraw()
+            self._hide_hud()
         else:
-            self.overlay.withdraw()
-            self._shown_question = None
-            self._feedback = ""
+            self._hide_overlay()
             self._show_hud(view)
 
     def _show_hud(self, view: View) -> None:
         if view.state is AccessState.STUDY_OPEN:
-            self.hud.withdraw()
+            self._hide_hud()
             return
         color = {"5min": "#ffd54f", "1min": "#ff5252"}.get(view.warning, "#7CFC00")
         if view.state is AccessState.NOT_SET_UP:
@@ -173,12 +208,15 @@ class KioskApp:
         else:
             text = f"Còn {format_mmss(view.remaining_seconds)}"
             self.hud_button.pack_forget()
-        self.hud_label.config(text=text, fg=color)
-        self.hud.update_idletasks()
-        width = self.hud.winfo_reqwidth()
-        self.hud.geometry(f"+{self.hud.winfo_screenwidth() - width - 12}+8")
-        self.hud.deiconify()
-        self.hud.attributes("-topmost", True)
+        if (text, color) != self._hud_state:   # only touch the window on change
+            self._hud_state = (text, color)
+            self.hud_label.config(text=text, fg=color)
+            self.hud.update_idletasks()
+            width = self.hud.winfo_reqwidth()
+            self.hud.geometry(f"+{self.hud.winfo_screenwidth() - width - 12}+8")
+        if not self._hud_visible:
+            self._hud_visible = True
+            self.hud.deiconify()
         self.hud.lift()
 
     # --- events ---------------------------------------------------------
