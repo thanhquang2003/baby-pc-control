@@ -9,3 +9,5 @@ dist/
 .claude/worktrees/
 .claude/checkpoints/
 .claude/session-*.log
+.build/
+install.log

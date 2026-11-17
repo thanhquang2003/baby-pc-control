@@ -36,6 +36,29 @@ def test_corrupt_config_lets_parent_start_over(admin, tmp_path):
     assert AdminSession(tmp_path).login("newpass")
 
 
+def feed(*answers):
+    items = list(answers)
+    return lambda: items.pop(0) if items else None
+
+
+def test_confirm_password_flow(admin, tmp_path):
+    from babycontrol.admin import confirm_password
+    fresh = lambda: AdminSession(tmp_path)          # noqa: E731
+    assert confirm_password(fresh(), feed("parent"))
+    assert confirm_password(fresh(), feed("bad", "bad", "parent"))   # third try
+    assert not confirm_password(fresh(), feed("bad", "bad", "bad", "parent"))
+    assert not confirm_password(fresh(), feed(None))                 # cancelled
+
+
+def test_confirm_allowed_when_nothing_to_protect(tmp_path):
+    from babycontrol.admin import confirm_password
+    assert confirm_password(AdminSession(tmp_path), feed())          # no password yet
+    (tmp_path / "config.dat").write_bytes(b"junk")
+    (tmp_path / "config.bak").write_bytes(b"junk")
+    (tmp_path / ".configured").write_text("1")
+    assert confirm_password(AdminSession(tmp_path), feed())          # unreadable config
+
+
 def test_cannot_reset_existing_password(admin):
     with pytest.raises(AuthError):
         admin.set_initial_password("other")

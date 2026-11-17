@@ -304,7 +304,51 @@ def run_ui(base: Path | None = None) -> None:
     root.mainloop()
 
 
-def main() -> int:
+def confirm_password(session: AdminSession, ask: Callable[[], str | None],
+                     attempts: int = 3) -> bool:
+    """Gate for sensitive actions such as uninstalling.
+
+    `ask` returns the typed password, or None if the dialog was cancelled.
+    With no password set or unreadable settings there is nothing to protect,
+    so the action is allowed (otherwise the parent could never clean up).
+    """
+    if session.corrupt or not session.has_password:
+        return True
+    for _ in range(attempts):
+        password = ask()
+        if password is None:
+            return False
+        if session.login(password):
+            return True
+    return False
+
+
+def run_confirm_ui(base: Path | None = None) -> int:
+    """Ask for the parent password in a dialog. Exit code 0 = confirmed."""
+    import tkinter as tk
+    from tkinter import messagebox, simpledialog
+
+    root = tk.Tk()
+    root.withdraw()
+    root.attributes("-topmost", True)
+    session = AdminSession(base)
+
+    def ask():
+        return simpledialog.askstring(
+            "BabyControl", "Nhập mật khẩu phụ huynh để tiếp tục:", show="*", parent=root)
+
+    ok = confirm_password(session, ask)
+    if not ok:
+        messagebox.showerror("BabyControl", "Chưa xác nhận được mật khẩu. Không thực hiện.",
+                             parent=root)
+    root.destroy()
+    return 0 if ok else 1
+
+
+def main(argv: list[str] | None = None) -> int:
+    argv = sys.argv[1:] if argv is None else argv
+    if "--confirm" in argv:
+        return run_confirm_ui()
     run_ui()
     return 0
 

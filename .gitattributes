@@ -1,0 +1,3 @@
+# Keep Windows batch/PowerShell files byte-for-byte (CRLF .bat files break with LF).
+*.bat -text
+*.ps1 -text
