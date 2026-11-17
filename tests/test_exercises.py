@@ -82,6 +82,44 @@ def test_wrong_answer_does_not_count_and_keeps_subject_quota():
     assert subjects.count("math") == 2 and subjects.count("english") == 2
 
 
+def test_wrong_answer_is_made_up_with_same_subject_immediately():
+    for seed in range(20):
+        session = ExerciseSession(3, 3, 3, rng=random.Random(seed))
+        for _ in range(12):
+            if session.passed:
+                break
+            subject = session.current.subject
+            session.submit("definitely wrong ###")
+            assert session.current.subject == subject    # replacement, same subject
+            session.submit(session.current.answer)         # then answer correctly
+
+
+def test_each_subject_always_gets_its_full_quota_despite_mistakes():
+    rng = random.Random(7)
+    session = ExerciseSession(4, 4, 2, rng=rng)
+    answered = {"math": 0, "english": 0}
+    flip = 0
+    while not session.passed:
+        subject = session.current.subject
+        flip += 1
+        if flip % 3 == 0:                      # every third answer is wrong
+            session.submit("###")
+        else:
+            session.submit(session.current.answer)
+            answered[subject] += 1
+    assert answered == {"math": 4, "english": 2}
+    assert session.progress() == {"math": (4, 4), "english": (2, 2)}
+
+
+def test_progress_reports_per_subject():
+    session = ExerciseSession(3, 3, 2, rng=random.Random(1))
+    assert session.progress() == {"math": (0, 3), "english": (0, 2)}
+    session.submit(session.current.answer)             # first question is math
+    assert session.progress() == {"math": (1, 3), "english": (0, 2)}
+    session.submit("###")
+    assert session.progress() == {"math": (1, 3), "english": (0, 2)}
+
+
 def test_session_alternates_subjects_then_drains_remaining():
     session = ExerciseSession(3, 3, 1, rng=random.Random(5))
     assert _run_all_correct(session) == ["math", "english", "math", "math"]
