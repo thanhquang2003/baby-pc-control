@@ -16,5 +16,24 @@
     "id_format": "BUG-NNN",
     "evidence_rule": "Defects cannot move to resolved without evidence."
   },
-  "defects": []
+  "defects": [
+    {
+      "id": "BUG-001",
+      "title": "Cài xong máy bị khoá ngay, không thể tạo mật khẩu phụ huynh",
+      "description": "Lần đầu chưa có cấu hình/mật khẩu: kiosk dùng mặc định và khoá toàn màn hình topmost, cửa sổ admin bị che, bố mẹ không có mật khẩu để mở khoá. Sửa: khi chưa đặt mật khẩu thì kiosk không giám sát (trạng thái NOT_SET_UP), chỉ hiện nhắc nhỏ.",
+      "severity": "critical",
+      "status": "in-progress",
+      "affected_feature": "FEAT-004",
+      "layer": "Full-stack",
+      "depends_on": [],
+      "reported_session": "2026-11-17T06:02:38.046Z",
+      "assigned_session": "session-2",
+      "started": "2026-11-17",
+      "resolved_session": null,
+      "fix_commit": null,
+      "evidence": null,
+      "notes": null,
+      "work_log": []
+    }
+  ]
 }
