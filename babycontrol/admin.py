@@ -16,6 +16,8 @@ from .config import (
 from .timer import UsageTracker
 
 DAY_NAMES = ["T2", "T3", "T4", "T5", "T6", "T7", "CN"]
+PARENT_SESSION_MINUTES = 3      # renewed every KEEP_ALIVE_MS while the tool is open
+KEEP_ALIVE_MS = 30_000
 
 
 class AuthError(PermissionError):
@@ -42,6 +44,7 @@ class AdminSession:
             self.corrupt = True
         self.tracker = UsageTracker(base)
         self.authenticated = False
+        self._owns_pause = False
 
     # --- auth -----------------------------------------------------------
     @property
@@ -52,8 +55,43 @@ class AdminSession:
         if self.has_password:
             raise AuthError("password already set")
         self.config.set_password(password)
-        self._save()
         self.authenticated = True
+        # Parent mode first, so the kiosk that notices the new password within
+        # seconds does not lock the screen over this window.
+        self.begin_parent_session()
+        self._save()
+
+    # --- parent session: no lock while this tool is open ----------------
+    def begin_parent_session(self) -> None:
+        """Suspend supervision while the parent works in this tool.
+
+        Parent mode is renewed by `keep_alive()` every few seconds and ended by
+        `end_parent_session()` when the tool closes, so a crash leaves the
+        child unsupervised for at most PARENT_SESSION_MINUTES. A longer parent
+        mode already chosen on the lock screen is left alone."""
+        self._require_auth()
+        try:
+            prepare_data_dir(self.base)
+            if self.tracker.pause_remaining(self._now()) > PARENT_SESSION_MINUTES * 60:
+                self._owns_pause = False
+                return
+            self.tracker.pause(PARENT_SESSION_MINUTES, self._now())
+            self._owns_pause = True
+        except OSError:
+            self._owns_pause = False    # cannot reach the usage file: carry on
+
+    def keep_alive(self) -> None:
+        if self._owns_pause:
+            self._owns_pause = self.tracker.extend_pause(PARENT_SESSION_MINUTES, self._now())
+
+    def end_parent_session(self) -> None:
+        """Called when the tool closes: supervision resumes right away."""
+        if self._owns_pause:
+            self._owns_pause = False
+            try:
+                self.tracker.end_pause(self._now())
+            except OSError:
+                pass
 
     def login(self, password: str) -> bool:
         self.authenticated = self.config.verify_password(password)
@@ -164,6 +202,15 @@ def run_ui(base: Path | None = None) -> None:
             except (ConfigError, AuthError, OSError) as exc:
                 messagebox.showerror("Lỗi", str(exc))
                 return
+            if creating:
+                messagebox.showinfo(
+                    "Đã tạo mật khẩu",
+                    "Đã tạo mật khẩu. Máy chưa bị khoá trong lúc bạn thiết lập.\n\n"
+                    "Khi bạn ĐÓNG cửa sổ này, BabyControl bắt đầu hoạt động và màn hình "
+                    "bài tập sẽ hiện. Muốn tiếp tục dùng máy, nhập mật khẩu ở cuối màn hình "
+                    "khoá rồi chọn số phút.")
+            else:
+                session.begin_parent_session()
             show_main()
 
         pw.bind("<Return>", submit)
@@ -304,8 +351,21 @@ def run_ui(base: Path | None = None) -> None:
 
         ttk.Button(tab, text="Đổi mật khẩu", command=change).pack(pady=12, anchor="w")
 
+    def keep_alive():
+        session.keep_alive()
+        root.after(KEEP_ALIVE_MS, keep_alive)
+
+    def on_close():
+        session.end_parent_session()    # supervision resumes as soon as we close
+        root.destroy()
+
+    root.protocol("WM_DELETE_WINDOW", on_close)
+    root.after(KEEP_ALIVE_MS, keep_alive)
     show_login()
-    root.mainloop()
+    try:
+        root.mainloop()
+    finally:
+        session.end_parent_session()
 
 
 def confirm_password(session: AdminSession, ask: Callable[[], str | None],

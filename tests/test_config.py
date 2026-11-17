@@ -34,7 +34,8 @@ def test_config_is_encrypted_on_disk(tmp_path):
     config.set_password("secret")
     save_config(config, tmp_path)
     raw = (tmp_path / "config.dat").read_bytes()
-    assert b"secret" not in raw and b"daily_limit" not in raw and b"77" not in raw
+    # words only: short digit strings can occur by chance in base64 ciphertext
+    assert b"secret" not in raw and b"daily_limit" not in raw
     assert not (tmp_path / "config.json").exists()
 
 

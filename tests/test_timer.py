@@ -88,6 +88,76 @@ def test_pause_state(tmp_path):
     assert access_state(CONFIG, t2, study, False) is AccessState.STUDY_OPEN
 
 
+# --- two processes (kiosk + admin tool) share the file (BUG-003) ---------------
+
+def pair(tmp_path):
+    kiosk = UsageTracker(tmp_path, sync_interval=0)
+    admin = UsageTracker(tmp_path, sync_interval=0)
+    return kiosk, admin
+
+
+def test_pause_set_by_admin_reaches_the_running_kiosk(tmp_path):
+    kiosk, admin = pair(tmp_path)
+    run(kiosk, MON, 60)
+    admin.pause(30, MON)
+    assert kiosk.pause_remaining(MON) == 1800
+    assert access_state(CONFIG, kiosk, MON, False) is AccessState.PARENT_MODE
+
+
+def test_bonus_from_admin_survives_kiosk_saving(tmp_path):
+    kiosk, admin = pair(tmp_path)
+    mono = run(kiosk, MON, 600)
+    admin.add_bonus(900, MON)
+    run(kiosk, MON, 120, start_mono=mono)       # kiosk keeps ticking and saving
+    expected = 30 * 60 + 900 - 720
+    assert kiosk.remaining_seconds(CONFIG, MON) == expected
+    assert UsageTracker(tmp_path).remaining_seconds(CONFIG, MON) == expected
+
+
+def test_stale_admin_never_lowers_kiosk_usage(tmp_path):
+    kiosk, admin = pair(tmp_path)               # admin loaded when usage was 0
+    run(kiosk, MON, 600)
+    admin.add_bonus(60, MON)                    # admin saves after merging
+    assert UsageTracker(tmp_path).used_seconds(MON) == 600
+
+
+def test_extend_pause_only_while_paused(tmp_path):
+    kiosk, admin = pair(tmp_path)
+    admin.pause(3, MON)
+    assert admin.extend_pause(3, MON + timedelta(seconds=30)) is True
+    kiosk.end_pause(MON)                        # parent pressed "Kết thúc" on the HUD
+    assert admin.extend_pause(3, MON) is False
+    assert kiosk.pause_remaining(MON) == 0
+
+
+def test_unreadable_file_mid_run_keeps_memory_and_heals(tmp_path):
+    kiosk = UsageTracker(tmp_path, sync_interval=0)
+    mono = run(kiosk, MON, 120)
+    (tmp_path / "usage" / "usage.dat").write_bytes(b"edited by the child")
+    assert kiosk.used_seconds(MON) == 120       # memory is the truth
+    run(kiosk, MON, 60, start_mono=mono)        # next save rewrites a good file
+    assert UsageTracker(tmp_path).used_seconds(MON) == 180
+
+
+def test_day_rolled_by_other_process_is_adopted(tmp_path):
+    kiosk, admin = pair(tmp_path)
+    run(kiosk, MON, 300)
+    tomorrow = MON + timedelta(days=1)
+    admin.add_bonus(600, tomorrow)              # admin tool runs the next day
+    assert kiosk.used_seconds(tomorrow) == 0
+    assert kiosk.remaining_seconds(CONFIG, tomorrow) == 30 * 60 + 600
+
+
+def test_sync_interval_limits_file_reads(tmp_path, monkeypatch):
+    tracker = UsageTracker(tmp_path, sync_interval=60)
+    reads = []
+    original = tracker._store.read
+    monkeypatch.setattr(tracker._store, "read", lambda p: reads.append(p) or original(p))
+    for _ in range(20):
+        tracker.used_seconds(MON)
+    assert reads == []                          # inside the interval: no re-read
+
+
 def test_pause_is_capped(tmp_path):
     t = UsageTracker(tmp_path)
     t.pause(100 * 60, MON)
@@ -97,7 +167,7 @@ def test_pause_is_capped(tmp_path):
 def test_usage_is_encrypted_on_disk(tmp_path):
     run(UsageTracker(tmp_path), MON, 300)
     raw = (tmp_path / "usage" / "usage.dat").read_bytes()
-    assert b"used_seconds" not in raw and b"300" not in raw
+    assert b"used_seconds" not in raw and b"paused_until" not in raw
 
 
 def test_fresh_install_starts_at_zero(tmp_path):

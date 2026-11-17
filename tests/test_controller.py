@@ -129,6 +129,30 @@ def test_first_run_without_password_never_locks(tmp_path):
     assert ctl.tracker.used_seconds(clock.now) == 0
 
 
+def test_bug_003_no_lock_while_setup_tool_is_open_then_lock_after(tmp_path):
+    """Install, create the password, kiosk reloads the config a few seconds
+    later: the screen must stay free until the parent closes the tool."""
+    from babycontrol.admin import AdminSession
+    from babycontrol.config import load_config
+
+    clock = Clock()
+    ctl = KioskController(load_config(tmp_path), UsageTracker(tmp_path, sync_interval=0),
+                          lambda: clock.now, lambda: clock.mono, random.Random(1))
+    assert ctl.update().state is AccessState.NOT_SET_UP        # fresh install
+
+    admin = AdminSession(tmp_path, now_fn=lambda: clock.now)   # parent opens the tool
+    admin.set_initial_password("parent")
+    ctl.set_config(load_config(tmp_path))                      # kiosk's 10-second reload
+    for _ in range(60):                                        # a minute of setup work
+        clock.advance(1)
+        assert ctl.update().state is AccessState.PARENT_MODE
+    assert ctl.tracker.used_seconds(clock.now) == 0
+
+    admin.end_parent_session()                                 # parent closes the tool
+    view = ctl.update()
+    assert view.state is AccessState.NEED_EXERCISE and view.question is not None
+
+
 def test_supervision_starts_once_password_is_set(tmp_path):
     clock = Clock()
     config = Config()
