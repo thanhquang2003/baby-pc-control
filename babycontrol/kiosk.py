@@ -10,7 +10,7 @@ from __future__ import annotations
 import sys
 from pathlib import Path
 
-from .config import ConfigError, load_config, usage_dir
+from .config import ConfigCorrupt, ConfigError, load_config
 from .controller import DEFAULT_OVERRIDE_MINUTES, KioskController, View
 from .timer import AccessState, UsageTracker
 
@@ -55,7 +55,11 @@ class KioskApp:
         import tkinter as tk
         self.tk = tk
         self.base = base
-        self.controller = KioskController(load_config(base), UsageTracker(usage_dir(base)))
+        try:
+            config = load_config(base)
+        except ConfigCorrupt:
+            config = None   # fail closed: stay locked until the config is fixed
+        self.controller = KioskController(config, UsageTracker(base))
         self._ticks = 0
         self._shown_question = None
         self._feedback = ""
@@ -140,6 +144,12 @@ class KioskApp:
         self._label("Hết giờ dùng máy hôm nay", 36, "#ffd54f")
         self._label("Hẹn con ngày mai nhé!", 22)
 
+    def _render_config_error(self) -> None:
+        self._shown_question = None
+        self._clear_body()
+        self._label("Máy đang bị khoá", 36, "#ff8a80")
+        self._label("Không đọc được cài đặt. Nhờ bố mẹ kiểm tra giúp con nhé.", 22)
+
     def _show_overlay(self) -> None:
         win = self.overlay
         win.geometry(f"{win.winfo_screenwidth()}x{win.winfo_screenheight()}+0+0")
@@ -156,6 +166,10 @@ class KioskApp:
         elif view.state is AccessState.NO_QUOTA:
             self._show_overlay()
             self._render_time_up()
+            self.hud.withdraw()
+        elif view.state is AccessState.CONFIG_ERROR:
+            self._show_overlay()
+            self._render_config_error()
             self.hud.withdraw()
         else:
             self.overlay.withdraw()
@@ -196,8 +210,10 @@ class KioskApp:
         if self._ticks % CONFIG_RELOAD_EVERY == 0:
             try:
                 self.controller.set_config(load_config(self.base))
+            except ConfigCorrupt:
+                self.controller.set_config(None)   # tampered/deleted: lock
             except (ConfigError, OSError, ValueError):
-                pass   # keep the last good config
+                pass   # transient read problem: keep the last good config
         self._render(self.controller.update())
         if reschedule:
             self.root.after(1000, self._tick)

@@ -10,8 +10,8 @@ from pathlib import Path
 from typing import Callable
 
 from .config import (
-    Config, ConfigError, StudyWindow, load_config, prepare_data_dir, save_config,
-    usage_dir,
+    Config, ConfigCorrupt, ConfigError, StudyWindow, load_config, prepare_data_dir,
+    save_config,
 )
 from .timer import UsageTracker
 
@@ -32,8 +32,15 @@ class AdminSession:
                  now_fn: Callable[[], datetime] = datetime.now) -> None:
         self.base = base
         self._now = now_fn
-        self.config = load_config(base)
-        self.tracker = UsageTracker(usage_dir(base))
+        try:
+            self.config = load_config(base)
+            self.corrupt = False
+        except ConfigCorrupt:
+            # Settings were lost or tampered with. Start from defaults so the
+            # parent can set a new password; the child stays locked until then.
+            self.config = Config()
+            self.corrupt = True
+        self.tracker = UsageTracker(base)
         self.authenticated = False
 
     # --- auth -----------------------------------------------------------
@@ -134,6 +141,9 @@ def run_ui(base: Path | None = None) -> None:
         frame = ttk.Frame(root, padding=24)
         frame.pack(expand=True)
         creating = not session.has_password
+        if session.corrupt:
+            ttk.Label(frame, text="Cài đặt cũ bị hỏng hoặc bị xoá.\nHãy tạo mật khẩu mới "
+                      "và đặt lại cài đặt.", foreground="#c62828").pack(pady=8)
         ttk.Label(frame, text="Tạo mật khẩu phụ huynh" if creating else "Nhập mật khẩu",
                   font=("Segoe UI", 14)).pack(pady=8)
         pw = ttk.Entry(frame, show="*", width=24)

@@ -118,6 +118,18 @@ def test_parent_override(setup):
     assert view.remaining_seconds == 15 * 60
 
 
+def test_unreadable_config_locks_and_recovers(setup):
+    ctl, clock = setup
+    pass_exercises(ctl)
+    ctl.set_config(None)
+    view = ctl.update()
+    assert view.state is AccessState.CONFIG_ERROR and view.question is None
+    assert ctl.parent_override("parent") is False
+    fixed = Config(daily_limit_minutes=10, math_questions=1, english_questions=1)
+    ctl.set_config(fixed)
+    assert ctl.update().state is AccessState.NEED_EXERCISE   # must redo exercises
+
+
 def test_submit_without_session_returns_none(setup):
     ctl, _ = setup
     pass_exercises(ctl)

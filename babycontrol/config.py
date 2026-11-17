@@ -10,11 +10,14 @@ import hmac
 import json
 import os
 import secrets
+import shutil
 import subprocess
 import sys
 from dataclasses import dataclass, field, asdict
 from datetime import datetime, time
 from pathlib import Path
+
+from .secure_store import SecureStore, StoreError
 
 DEFAULT_DAILY_LIMIT_MINUTES = 30
 PBKDF2_ITERATIONS = 200_000
@@ -114,32 +117,114 @@ def _hash_password(password: str, salt: bytes) -> str:
     ).hex()
 
 
+class ConfigCorrupt(Exception):
+    """Config exists (or must exist) but cannot be read. Callers must fail
+    closed (lock the machine) instead of falling back to defaults."""
+
+
 def config_path(base: Path | None = None) -> Path:
-    return (base or data_dir()) / "config.json"
+    return (base or data_dir()) / "config.dat"
 
 
-def load_config(base: Path | None = None) -> Config:
-    """Load config, returning defaults if missing."""
-    path = config_path(base)
-    if not path.exists():
-        return Config()
-    raw = json.loads(path.read_text(encoding="utf-8"))
+def _backup_path(base: Path | None) -> Path:
+    return (base or data_dir()) / "config.bak"
+
+
+def _legacy_path(base: Path | None) -> Path:
+    return (base or data_dir()) / "config.json"   # plain JSON written by v1
+
+
+# --- "was configured" marker -------------------------------------------------
+# Lets us tell "fresh install" from "config deleted by the child". On Windows it
+# is a registry value; elsewhere (dev/tests) a file under the data directory.
+
+_REG_KEY = r"SOFTWARE\BabyControl"
+
+
+def is_configured(base: Path | None = None) -> bool:
+    if sys.platform == "win32" and base is None:
+        import winreg
+        try:
+            with winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, _REG_KEY, 0,
+                                winreg.KEY_READ | winreg.KEY_WOW64_64KEY) as key:
+                return bool(winreg.QueryValueEx(key, "Configured")[0])
+        except OSError:
+            return False
+    return ((base or data_dir()) / ".configured").exists()
+
+
+def mark_configured(base: Path | None = None) -> None:
+    if sys.platform == "win32" and base is None:
+        import winreg
+        try:
+            with winreg.CreateKeyEx(winreg.HKEY_LOCAL_MACHINE, _REG_KEY, 0,
+                                    winreg.KEY_WRITE | winreg.KEY_WOW64_64KEY) as key:
+                winreg.SetValueEx(key, "Configured", 0, winreg.REG_DWORD, 1)
+        except OSError:
+            pass
+        return
+    root = base or data_dir()
+    root.mkdir(parents=True, exist_ok=True)
+    (root / ".configured").write_text("1")
+
+
+def _config_from_json(text: str) -> Config:
+    raw = json.loads(text)
     windows = [StudyWindow(**w) for w in raw.pop("study_windows", [])]
     config = Config(study_windows=windows, **raw)
     config.validate()
     return config
 
 
+def load_config(base: Path | None = None) -> Config:
+    """Load config.
+
+    Fresh install (nothing stored, never configured) returns defaults. If a
+    config was stored but can't be read (deleted, corrupt, edited) the backup is
+    tried, and if that fails ConfigCorrupt is raised.
+    """
+    root = base or data_dir()
+    store = SecureStore(root)
+    problems = []
+    found_any = False
+    for path in (config_path(base), _backup_path(base)):
+        try:
+            data = store.read(path)
+        except StoreError as exc:
+            found_any = True
+            problems.append(str(exc))
+            continue
+        if data is None:
+            continue
+        found_any = True
+        try:
+            return _config_from_json(data.decode("utf-8"))
+        except (ValueError, TypeError, ConfigError) as exc:
+            problems.append(f"{path.name}: {exc}")
+    legacy = _legacy_path(base)
+    if legacy.exists():   # v1 plain config: usable, re-encrypted on next save
+        try:
+            return _config_from_json(legacy.read_text(encoding="utf-8"))
+        except (ValueError, TypeError, ConfigError, OSError) as exc:
+            raise ConfigCorrupt(f"legacy config unreadable: {exc}") from exc
+    if found_any or is_configured(base):
+        raise ConfigCorrupt("; ".join(problems) or "configuration is missing")
+    return Config()
+
+
 def save_config(config: Config, base: Path | None = None) -> Path:
-    """Validate then atomically write config."""
+    """Validate, then write config encrypted, keeping the previous as .bak."""
     config.validate()
     path = config_path(base)
     path.parent.mkdir(parents=True, exist_ok=True)
-    tmp = path.with_suffix(".tmp")
-    tmp.write_text(
-        json.dumps(asdict(config), ensure_ascii=False, indent=2), encoding="utf-8"
-    )
-    os.replace(tmp, path)
+    if path.exists():
+        shutil.copy2(path, _backup_path(base))
+    SecureStore(path.parent).write(
+        path, json.dumps(asdict(config), ensure_ascii=False).encode("utf-8"))
+    legacy = _legacy_path(base)
+    if legacy.exists():
+        legacy.unlink()
+    mark_configured(base)
     harden_acl(path.parent)
     return path
 

@@ -3,7 +3,7 @@ from datetime import datetime
 import pytest
 
 from babycontrol.config import (
-    Config, ConfigError, StudyWindow, load_config, save_config,
+    Config, ConfigCorrupt, ConfigError, StudyWindow, load_config, save_config,
 )
 
 MON_1930 = datetime(2026, 11, 16, 19, 30)  # 2026-11-16 is a Monday
@@ -29,11 +29,62 @@ def test_roundtrip(tmp_path):
     assert not loaded.verify_password("wrong")
 
 
-def test_password_not_stored_plain(tmp_path):
-    config = Config()
+def test_config_is_encrypted_on_disk(tmp_path):
+    config = Config(daily_limit_minutes=77)
     config.set_password("secret")
     save_config(config, tmp_path)
-    assert "secret" not in (tmp_path / "config.json").read_text()
+    raw = (tmp_path / "config.dat").read_bytes()
+    assert b"secret" not in raw and b"daily_limit" not in raw and b"77" not in raw
+    assert not (tmp_path / "config.json").exists()
+
+
+def test_edited_config_falls_back_to_backup(tmp_path):
+    save_config(Config(daily_limit_minutes=20), tmp_path)
+    save_config(Config(daily_limit_minutes=40), tmp_path)    # .bak holds the 20
+    (tmp_path / "config.dat").write_bytes(b"gAAAA-tampered")
+    assert load_config(tmp_path).daily_limit_minutes == 20
+
+
+def test_deleted_config_falls_back_to_backup(tmp_path):
+    save_config(Config(daily_limit_minutes=20), tmp_path)
+    save_config(Config(daily_limit_minutes=40), tmp_path)
+    (tmp_path / "config.dat").unlink()
+    assert load_config(tmp_path).daily_limit_minutes == 20
+
+
+def test_all_copies_tampered_raises_corrupt(tmp_path):
+    save_config(Config(), tmp_path)
+    save_config(Config(), tmp_path)
+    (tmp_path / "config.dat").write_bytes(b"junk")
+    (tmp_path / "config.bak").write_bytes(b"junk")
+    with pytest.raises(ConfigCorrupt):
+        load_config(tmp_path)
+
+
+def test_deleted_config_after_setup_raises_corrupt(tmp_path):
+    save_config(Config(), tmp_path)
+    (tmp_path / "config.dat").unlink()
+    with pytest.raises(ConfigCorrupt):
+        load_config(tmp_path)          # configured marker still present
+
+
+def test_lost_key_raises_corrupt(tmp_path):
+    save_config(Config(), tmp_path)
+    (tmp_path / "key.bin").unlink()
+    with pytest.raises(ConfigCorrupt):
+        load_config(tmp_path)
+
+
+def test_legacy_plain_json_is_migrated(tmp_path):
+    (tmp_path / "config.json").write_text(
+        '{"daily_limit_minutes": 25, "grade": 4, "math_questions": 2, '
+        '"english_questions": 2, "study_windows": [], "password_salt": "", '
+        '"password_hash": ""}')
+    config = load_config(tmp_path)
+    assert config.daily_limit_minutes == 25
+    save_config(config, tmp_path)
+    assert not (tmp_path / "config.json").exists()
+    assert load_config(tmp_path).daily_limit_minutes == 25
 
 
 def test_verify_without_password_is_false():

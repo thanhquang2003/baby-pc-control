@@ -5,7 +5,6 @@ import pytest
 from babycontrol.admin import AdminSession, AuthError, describe_window
 from babycontrol.config import ConfigError, StudyWindow, load_config
 from babycontrol.timer import UsageTracker
-from babycontrol.config import usage_dir
 
 NOW = datetime(2026, 11, 16, 16, 0)
 
@@ -25,6 +24,16 @@ def test_first_run_sets_password_and_logs_in(tmp_path):
     again = AdminSession(tmp_path)
     assert again.has_password and not again.authenticated
     assert again.login("parent") and not AdminSession(tmp_path).login("nope")
+
+
+def test_corrupt_config_lets_parent_start_over(admin, tmp_path):
+    (tmp_path / "config.dat").write_bytes(b"junk")
+    (tmp_path / "config.bak").write_bytes(b"junk")
+    session = AdminSession(tmp_path)
+    assert session.corrupt and not session.has_password
+    session.set_initial_password("newpass")
+    assert not AdminSession(tmp_path).corrupt
+    assert AdminSession(tmp_path).login("newpass")
 
 
 def test_cannot_reset_existing_password(admin):
@@ -95,7 +104,7 @@ def test_grant_bonus_and_summary(admin):
 
 
 def test_usage_report_lists_finished_days_and_today(tmp_path):
-    tracker = UsageTracker(usage_dir(tmp_path))
+    tracker = UsageTracker(tmp_path)
     yesterday = NOW - timedelta(days=1)
     tracker.tick(yesterday, 0.0, True, False)
     tracker.tick(yesterday, 60.0, True, False)
