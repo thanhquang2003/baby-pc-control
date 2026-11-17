@@ -4,7 +4,7 @@
 
 **Date:** 2026-11-17
 **Verify:** `bash init.sh --verify` — 123 tests passed (macOS; Windows code not executed)
-**Detail:** FEAT-012 (GitHub Actions: Windows CI + release build of exes/ZIP; prebuilt-aware setup.ps1). BUG-003 (v0.2.4: tracker syncs across processes; no lock while the parent tool is open) and FEAT-011 (v0.2.5: parent picks minutes on the lock screen). FEAT-010 (v0.2.3: wrong answers made up with the same subject, per-subject progress). BUG-001 (v0.2.1, no lock before a parent password exists) and BUG-002 (v0.2.2, kiosk stole focus from the answer box) fixed. v1 tagged. v2 (0.2.0) delivered: FEAT-007 encrypted config/usage, FEAT-008 shared-account + parent mode, FEAT-009 one-click installer. PRs #1, #2, #3 squash-merged to `main`.
+**Detail:** FEAT-013 (v0.3.0: parent-defined blocking of apps/games by .exe name and websites via hosts file; tab Chặn). FEAT-012 (GitHub Actions: Windows CI + release build of exes/ZIP; prebuilt-aware setup.ps1). BUG-003 (v0.2.4: tracker syncs across processes; no lock while the parent tool is open) and FEAT-011 (v0.2.5: parent picks minutes on the lock screen). FEAT-010 (v0.2.3: wrong answers made up with the same subject, per-subject progress). BUG-001 (v0.2.1, no lock before a parent password exists) and BUG-002 (v0.2.2, kiosk stole focus from the answer box) fixed. v1 tagged. v2 (0.2.0) delivered: FEAT-007 encrypted config/usage, FEAT-008 shared-account + parent mode, FEAT-009 one-click installer. PRs #1, #2, #3 squash-merged to `main`.
 
 ### Handoff
 

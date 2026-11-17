@@ -214,10 +214,10 @@
         "parent:thêm nhanh nhóm game phổ biến"
       ],
       "complexity": "large",
-      "status": "in-progress",
+      "status": "done",
       "layer": "Full-stack",
       "dependencies": [],
-      "evidence": null,
+      "evidence": "https://github.com/thanhquang2003/baby-pc-control/pull/11 (squash fba90e9). 262 tests passed on windows-latest CI incl. hosts-file rewrite on real Windows files; release build dry-run OK. Process killing/service wiring and the Tk Chặn tab not yet run by a human.",
       "created": "2026-11-17",
       "updated": "2026-11-17"
     }
