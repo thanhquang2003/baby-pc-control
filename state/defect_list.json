@@ -34,6 +34,24 @@
       "evidence": "https://github.com/thanhquang2003/baby-pc-control/pull/4 (squash 24ee395). 125 tests passed; needs re-test on Windows",
       "notes": null,
       "work_log": []
+    },
+    {
+      "id": "BUG-002",
+      "title": "Ô nhập câu trả lời mất focus liên tục (kiosk giành focus mỗi giây)",
+      "description": "KioskApp._tick gọi _show_overlay mỗi giây: đặt lại geometry, deiconify, focus_force nên con trỏ rời ô nhập (cả ô trả lời lẫn ô mật khẩu phụ huynh). Sửa: chỉ hiện/đặt focus khi overlay mới xuất hiện, các lần sau chỉ lift; HUD cũng không deiconify lại mỗi giây.",
+      "severity": "high",
+      "status": "in-progress",
+      "affected_feature": "FEAT-004",
+      "layer": "Frontend",
+      "depends_on": [],
+      "reported_session": "2026-11-17T06:06:30.133Z",
+      "assigned_session": "session-2",
+      "started": "2026-11-17",
+      "resolved_session": null,
+      "fix_commit": null,
+      "evidence": null,
+      "notes": null,
+      "work_log": []
     }
   ]
 }
