@@ -76,6 +76,7 @@ class Config:
     grade: int = 3
     math_questions: int = 3      # correct Math answers needed per unlock
     english_questions: int = 2   # correct English answers needed per unlock
+    block_task_manager: bool = True   # disable Task Manager for supervised users
     study_windows: list[StudyWindow] = field(default_factory=list)
     password_salt: str = ""
     password_hash: str = ""

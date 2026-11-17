@@ -85,11 +85,15 @@ class AdminSession:
 
     # --- settings -------------------------------------------------------
     def update_settings(self, daily_limit_minutes: int, grade: int,
-                        math_questions: int, english_questions: int) -> None:
+                        math_questions: int, english_questions: int,
+                        block_task_manager: bool | None = None) -> None:
         self._require_auth()
+        block = self.config.block_task_manager if block_task_manager is None \
+            else block_task_manager
         self._apply(replace(
             self.config, daily_limit_minutes=daily_limit_minutes, grade=grade,
-            math_questions=math_questions, english_questions=english_questions))
+            math_questions=math_questions, english_questions=english_questions,
+            block_task_manager=block))
 
     def add_window(self, days: list[int], start: str, end: str) -> None:
         self._require_auth()
@@ -195,11 +199,17 @@ def run_ui(base: Path | None = None) -> None:
                 row=row, column=1, padx=12)
             fields[key] = var
 
+        block_tm = tk.BooleanVar(value=cfg.block_task_manager)
+        ttk.Checkbutton(tab, text="Chặn Task Manager (Ctrl+Shift+Esc)",
+                        variable=block_tm).grid(row=4, column=0, columnspan=2,
+                                                sticky="w", pady=6)
+
         def save_settings():
             def do():
                 session.update_settings(
                     int(fields["limit"].get()), int(fields["grade"].get()),
-                    int(fields["math"].get()), int(fields["english"].get()))
+                    int(fields["math"].get()), int(fields["english"].get()),
+                    block_tm.get())
             if guarded(do):
                 messagebox.showinfo("Đã lưu", "Đã lưu cài đặt")
 

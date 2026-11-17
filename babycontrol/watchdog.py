@@ -1,7 +1,8 @@
-"""Pure decision logic for the service watchdog (FEAT-005).
+"""Pure decision logic for the service watchdog (FEAT-005, FEAT-008).
 
 The service observes interactive sessions and asks the watchdog what to do.
-Administrator sessions are never touched, so the parent can always get in.
+Every logged-in user is supervised: parent and child share one account. The
+parent gets in through the password on the lock screen (parent mode).
 """
 from __future__ import annotations
 
@@ -20,7 +21,6 @@ class Action(Enum):
 class SessionInfo:
     session_id: int
     username: str
-    is_admin: bool
     kiosk_running: bool
 
 
@@ -34,13 +34,13 @@ class Watchdog:
         """Return actions for this cycle.
 
         If the kiosk executable is missing nothing is done (fail open) so a
-        broken install cannot log the child out in a loop.
+        broken install cannot log everyone out in a loop.
         """
         actions: list[tuple[Action, int]] = []
         seen = set()
         for s in sessions:
             seen.add(s.session_id)
-            if s.is_admin or not s.username or s.kiosk_running or not kiosk_available:
+            if not s.username or s.kiosk_running or not kiosk_available:
                 self._missing_since.pop(s.session_id, None)
                 continue
             first = self._missing_since.setdefault(s.session_id, mono)

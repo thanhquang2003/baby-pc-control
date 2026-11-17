@@ -14,6 +14,7 @@ from .timer import AccessState, UsageTracker, access_state
 WARN_5_MIN = 300
 WARN_1_MIN = 60
 DEFAULT_OVERRIDE_MINUTES = 15
+DEFAULT_PARENT_MODE_MINUTES = 120
 
 
 @dataclass
@@ -61,6 +62,10 @@ class KioskController:
                           active=state is AccessState.ALLOWED,
                           study_time=state is AccessState.STUDY_OPEN)
         state = self._state()          # quota may have run out during the tick
+        if state is AccessState.PARENT_MODE:
+            remaining = self.tracker.pause_remaining(now)
+            return View(state, remaining,
+                        warning="1min" if remaining <= WARN_1_MIN else None)
         if state is AccessState.NO_QUOTA:
             self.exercises_passed = False
             self.session = None
@@ -94,6 +99,18 @@ class KioskController:
             self.exercises_passed = True
             self.session = None
         return ok
+
+    def parent_pause(self, password: str,
+                     minutes: int = DEFAULT_PARENT_MODE_MINUTES) -> bool:
+        """Parent password: use the PC freely for `minutes`; nothing is counted."""
+        if self.config is None or not self.config.verify_password(password):
+            return False
+        self.tracker.pause(minutes, self._now())
+        return True
+
+    def end_parent_mode(self) -> None:
+        """Back to normal supervision (no password needed: it only restricts)."""
+        self.tracker.end_pause(self._now())
 
     def parent_override(self, password: str,
                         minutes: int = DEFAULT_OVERRIDE_MINUTES) -> bool:
