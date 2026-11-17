@@ -203,6 +203,23 @@
       "evidence": "PRs #9 (3df7ca8) and #10 (71c5971). CI on windows-latest: 171 tests passed incl. DPAPI. Release build dry-run on Windows: 3 exes + 40.5 MB ZIP, sha256 verified (run 44036128764). Tag-triggered upload not yet exercised.",
       "created": "2026-11-17",
       "updated": "2026-11-17"
+    },
+    {
+      "id": "FEAT-013",
+      "name": "Chặn ứng dụng/game và trang web do bố mẹ nhập",
+      "description": "Danh sách ứng dụng (tên .exe, có nút thêm nhóm game phổ biến, chọn file bằng hộp thoại) và trang web (dán link, lấy tên miền) lưu trong cấu hình mã hoá. Service SYSTEM tắt tiến trình bị chặn mỗi vài giây và ghi khối chặn vào file hosts (kèm www., xoá được khi gỡ cài đặt). Tạm bỏ chặn trong chế độ bố mẹ. Tab Chặn trong công cụ phụ huynh. Từ chối chặn tiến trình hệ thống.",
+      "use_cases": [
+        "parent:chặn game bằng tên file .exe",
+        "parent:chặn trang web bằng cách dán link",
+        "parent:thêm nhanh nhóm game phổ biến"
+      ],
+      "complexity": "large",
+      "status": "in-progress",
+      "layer": "Full-stack",
+      "dependencies": [],
+      "evidence": null,
+      "created": "2026-11-17",
+      "updated": "2026-11-17"
     }
   ]
 }
