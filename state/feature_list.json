@@ -166,10 +166,10 @@
         "parent:đặt riêng số câu Toán và Tiếng Anh"
       ],
       "complexity": "small",
-      "status": "in-progress",
+      "status": "done",
       "layer": "Full-stack",
       "dependencies": [],
-      "evidence": null,
+      "evidence": "https://github.com/thanhquang2003/baby-pc-control/pull/6 (squash 30541c6). 134 tests passed; Tk screen untested on Windows",
       "created": "2026-11-17",
       "updated": "2026-11-17"
     }
