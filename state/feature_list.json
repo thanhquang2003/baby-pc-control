@@ -105,6 +105,57 @@
       "evidence": "Local squash-merge ba99bc0 (no remote/PR). Admin logic tested (84 tests); Tk UI compile-checked only, needs Windows manual test",
       "created": "2026-11-16",
       "updated": "2026-11-16"
+    },
+    {
+      "id": "FEAT-007",
+      "name": "Mã hoá cấu hình và dữ liệu giờ (chống sửa file)",
+      "description": "Cấu hình và số liệu giờ lưu mã hoá (Fernet, khoá lưu bằng DPAPI máy) thay vì JSON thường; có bản sao .bak; tự chuyển từ config.json v1. Fail-closed: file hỏng hoặc bị xoá khi đã cài thì khoá máy chứ không reset hạn mức. Cần cryptography.",
+      "use_cases": [
+        "parent:con không sửa được file cấu hình/giờ bằng Notepad"
+      ],
+      "complexity": "medium",
+      "status": "planned",
+      "layer": "Backend",
+      "dependencies": [],
+      "evidence": null,
+      "created": "2026-11-17",
+      "updated": "2026-11-17"
+    },
+    {
+      "id": "FEAT-008",
+      "name": "Chế độ một tài khoản dùng chung",
+      "description": "Cha mẹ và con dùng chung một tài khoản Windows: service và kiosk giám sát mọi phiên (bỏ ngoại lệ admin); thêm chế độ phụ huynh (nhập mật khẩu trên màn hình khoá để dùng máy tự do N phút, không đếm giờ); tuỳ chọn chặn Task Manager; công cụ phụ huynh chạy được khi tài khoản chung.",
+      "use_cases": [
+        "parent:dùng máy bằng cùng tài khoản của con",
+        "parent:tạm dừng giám sát bằng mật khẩu"
+      ],
+      "complexity": "large",
+      "status": "planned",
+      "layer": "Full-stack",
+      "dependencies": [
+        "FEAT-007"
+      ],
+      "evidence": null,
+      "created": "2026-11-17",
+      "updated": "2026-11-17"
+    },
+    {
+      "id": "FEAT-009",
+      "name": "Trình cài đặt một-chạm cho người không rành IT",
+      "description": "install.bat: nhấp đúp là xong. Tự xin quyền admin, tự cài Python nếu thiếu (winget hoặc python.org), build exe, chép vào Program Files, cài service, tạo shortcut Phụ huynh trên Desktop, mở màn hình thiết lập lần đầu. Thông báo tiếng Việt từng bước, ghi log, uninstall.bat gỡ sạch.",
+      "use_cases": [
+        "parent:cài bằng cách nhấp đúp một file",
+        "parent:gỡ cài đặt dễ dàng"
+      ],
+      "complexity": "large",
+      "status": "planned",
+      "layer": "Full-stack",
+      "dependencies": [
+        "FEAT-008"
+      ],
+      "evidence": null,
+      "created": "2026-11-17",
+      "updated": "2026-11-17"
     }
   ]
 }
