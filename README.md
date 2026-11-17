@@ -45,36 +45,49 @@ Các bước mỗi lần con dùng máy:
 
 Tất cả các tài khoản, kể cả tài khoản quản trị, đều được giám sát. Bố mẹ dùng máy bằng cách vào chế độ bố mẹ.
 
+## Cài đặt (dành cho người không rành máy tính)
+
+Chỉ cần máy Windows 10/11 **có kết nối Internet**. Không cần cài gì trước, trình cài đặt tự lo hết.
+
+1. Vào trang GitHub của dự án, bấm nút xanh **Code** → **Download ZIP**.
+2. Mở thư mục *Downloads*, bấm chuột phải file ZIP vừa tải → **Extract All** (Giải nén) → **Extract**.
+3. Mở thư mục vừa giải nén, **nhấp đúp file `CAI_DAT.bat`**.
+   - Nếu Windows báo "Windows protected your PC": bấm **More info** → **Run anyway**.
+   - Khi hộp thoại xin quyền hiện ra, bấm **Yes** (Có). Nếu máy hỏi mật khẩu quản trị thì nhập mật khẩu quản trị.
+4. Chờ khoảng 5–10 phút, **đừng tắt cửa sổ** cho đến khi thấy chữ **HOÀN TẤT CÀI ĐẶT** (chữ xanh).
+5. Cửa sổ **BabyControl** tự mở ra: tạo **mật khẩu phụ huynh**, rồi đặt số phút mỗi ngày, lớp của con,
+   số câu hỏi mỗi môn và các khung giờ học tự do. Xong là máy đã được bảo vệ.
+
+Sau này, mở lại cài đặt bằng biểu tượng **BabyControl - Phu huynh** trên màn hình nền.
+Trình cài đặt tự cài Python nếu máy chưa có, nên lần đầu có thể lâu hơn. Cài lại lên bản mới chỉ cần chạy lại
+`CAI_DAT.bat`: cài đặt và nhật ký cũ được giữ nguyên.
+
+Nếu có lỗi, cửa sổ sẽ hiện chữ đỏ và ghi chi tiết vào file `install.log` cạnh `CAI_DAT.bat`; gửi file đó cho người hỗ trợ.
+
+**Gỡ cài đặt:** nhấp đúp `GO_CAI_DAT.bat` (hoặc Start → BabyControl → Gỡ cài đặt). Cần nhập mật khẩu phụ huynh
+nên con không tự gỡ được.
+
+> Lưu ý: phần mềm diệt virus đôi khi cảnh báo nhầm file `.exe` tạo bằng PyInstaller. Nếu bị chặn, hãy cho phép
+> thư mục `C:\Program Files\BabyControl`.
+
+### Cài đặt thủ công (cho người rành kỹ thuật)
+
+Cần Python 3.10+ có Tkinter. Trong PowerShell, thư mục dự án:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\build.ps1            # tạo .exe vào dist\
+powershell -ExecutionPolicy Bypass -File scripts\install_service.ps1  # Run as administrator
+dist\babycontrol-admin.exe                                            # công cụ phụ huynh (UAC)
+```
+
+Giữ cả ba file `.exe` trong cùng một thư mục vì service tìm kiosk cạnh nó.
+Gỡ thủ công: `scripts\uninstall_service.ps1` (Run as administrator).
+
 ## Yêu cầu
 
-- Windows 10/11 và Python 3.10+ (bản từ python.org đã có Tkinter).
+- Windows 10/11 64-bit, có Internet khi cài.
 - Một tài khoản Windows là đủ (bố mẹ và con dùng chung). Có thể dùng tài khoản thường hoặc quản trị.
   Tài khoản thường an toàn hơn: con không tự cài hoặc gỡ được chương trình.
-
-## Cài đặt
-
-Chạy trong thư mục dự án, bằng PowerShell:
-
-```powershell
-# 1. Build các file .exe vào dist\ (không cần quyền admin)
-powershell -ExecutionPolicy Bypass -File scripts\build.ps1
-
-# 2. Cài service (mở PowerShell bằng "Run as administrator")
-powershell -ExecutionPolicy Bypass -File scripts\install_service.ps1
-
-# 3. Mở công cụ phụ huynh (sẽ hỏi quyền quản trị UAC)
-dist\babycontrol-admin.exe
-```
-
-Lần đầu mở công cụ phụ huynh sẽ yêu cầu tạo mật khẩu. Sau đó đặt phút mỗi ngày, lớp, số câu mỗi môn và khung giờ học.
-Giữ cả ba file `.exe` trong cùng một thư mục `dist\`, vì service tìm kiosk cạnh nó.
-
-### Gỡ cài đặt
-
-```powershell
-# Run as administrator
-powershell -ExecutionPolicy Bypass -File scripts\uninstall_service.ps1
-```
 
 ## Cấu hình
 
@@ -109,7 +122,8 @@ Dữ liệu từ bản v1 (`config.json`, `usage.json`) được tự chuyển s
 | `babycontrol/watchdog.py` | Logic quyết định của service (bật lại kiosk, đăng xuất) |
 | `babycontrol/service.py` | Windows service (pywin32) |
 | `babycontrol/admin.py` | Logic và giao diện công cụ phụ huynh |
-| `scripts/` | Build PyInstaller, cài và gỡ service, file entry |
+| `CAI_DAT.bat`, `GO_CAI_DAT.bat` | Nhấp đúp để cài hoặc gỡ (gọi `scripts/setup.ps1`, `scripts/remove.ps1`) |
+| `scripts/` | Trình cài đặt PowerShell, build PyInstaller, cài và gỡ service, file entry |
 | `tests/` | Test tự động (pytest) |
 
 ## Phát triển

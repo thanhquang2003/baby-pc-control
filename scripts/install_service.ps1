@@ -9,6 +9,7 @@ $exe = (Resolve-Path $ExePath).Path
 if (Get-Service -Name $ServiceName -ErrorAction SilentlyContinue) {
     Write-Host "Service exists; reinstalling"
     & "$PSScriptRoot\uninstall_service.ps1" -ServiceName $ServiceName
+    Start-Sleep -Seconds 3   # let Windows finish deleting the old service
 }
 New-Service -Name $ServiceName -BinaryPathName "`"$exe`"" `
     -DisplayName "BabyControl" -StartupType Automatic | Out-Null
