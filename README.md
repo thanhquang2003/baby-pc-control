@@ -14,14 +14,16 @@ Công cụ quản lý giờ dùng máy tính Windows cho trẻ em, viết bằng
 - **Khung giờ mở thả để học:** lịch theo tuần (ví dụ T2–T6 19:00–20:30). Trong khung này con dùng máy tự do,
   không phải làm bài và không bị trừ giờ.
 - **Màn hình kiosk:** phủ toàn màn hình khi cần làm bài hoặc hết giờ; có đồng hồ đếm ngược và cảnh báo còn 5 phút, 1 phút.
-- **Service giám sát:** chạy nền bằng quyền SYSTEM, tự bật lại kiosk nếu con tắt, tắt Task Manager cho tài khoản của con.
+- **Một tài khoản dùng chung:** bố mẹ và con dùng chung một tài khoản Windows. Bố mẹ nhập mật khẩu ở màn hình khoá
+  để vào **chế độ bố mẹ** (dùng máy tự do vài giờ, không bị đếm giờ).
+- **Service giám sát:** chạy nền bằng quyền SYSTEM, tự bật lại kiosk nếu bị tắt, chặn Task Manager (bật/tắt được).
 - **Công cụ phụ huynh:** bảo vệ bằng mật khẩu; chỉnh cài đặt, lịch giờ học, cộng thêm giờ, xem nhật ký 60 ngày gần nhất.
 - **Chống chỉnh đồng hồ:** chỉnh giờ hệ thống lùi lại không làm reset hạn mức trong ngày.
 
 ## Cách hoạt động
 
 ```
- Tài khoản admin (phụ huynh)            Tài khoản con (Standard)
+ Công cụ phụ huynh (có mật khẩu)        Màn hình kiosk (cùng tài khoản)
  ┌────────────────────────┐             ┌──────────────────────────────┐
  │ babycontrol-admin.exe  │             │ babycontrol-kiosk.exe        │
  │ cấu hình, mật khẩu,    │             │ bài tập, đếm giờ, màn hình   │
@@ -34,19 +36,20 @@ Công cụ quản lý giờ dùng máy tính Windows cho trẻ em, viết bằng
 ```
 
 Các bước mỗi lần con dùng máy:
-1. Con đăng nhập, service bật kiosk trong phiên của con.
+1. Ai đăng nhập cũng được service bật kiosk trong phiên đó.
 2. Ngoài khung giờ học: kiosk hiện bài tập. Làm đủ số câu đúng thì mở máy.
 3. Khi đang dùng máy, kiosk đếm giờ. Hết hạn mức thì khoá lại và hiện "Hết giờ dùng máy hôm nay".
 4. Trong khung giờ học: kiosk ẩn, không đếm giờ.
-5. Phụ huynh nhập mật khẩu ở cuối màn hình khoá để cho thêm 15 phút và bỏ qua bài tập.
+5. Bố mẹ nhập mật khẩu ở cuối màn hình khoá: **"Thêm 15 phút"** (bỏ qua bài tập) hoặc **"Bố mẹ dùng máy 2 giờ"**
+   (chế độ bố mẹ: không khoá, không đếm giờ; bấm "Kết thúc" ở góc màn hình để quay lại giám sát sớm).
 
-Tài khoản thuộc nhóm Administrators không bao giờ bị khoá hoặc đăng xuất.
+Tất cả các tài khoản, kể cả tài khoản quản trị, đều được giám sát. Bố mẹ dùng máy bằng cách vào chế độ bố mẹ.
 
 ## Yêu cầu
 
 - Windows 10/11 và Python 3.10+ (bản từ python.org đã có Tkinter).
-- **Hai tài khoản Windows:** tài khoản admin của phụ huynh và một tài khoản *người dùng chuẩn (Standard)* cho con.
-  Nếu con dùng tài khoản admin thì công cụ không chặn được.
+- Một tài khoản Windows là đủ (bố mẹ và con dùng chung). Có thể dùng tài khoản thường hoặc quản trị.
+  Tài khoản thường an toàn hơn: con không tự cài hoặc gỡ được chương trình.
 
 ## Cài đặt
 
@@ -59,7 +62,7 @@ powershell -ExecutionPolicy Bypass -File scripts\build.ps1
 # 2. Cài service (mở PowerShell bằng "Run as administrator")
 powershell -ExecutionPolicy Bypass -File scripts\install_service.ps1
 
-# 3. Mở công cụ phụ huynh (tài khoản admin, sẽ hỏi quyền UAC)
+# 3. Mở công cụ phụ huynh (sẽ hỏi quyền quản trị UAC)
 dist\babycontrol-admin.exe
 ```
 
@@ -79,7 +82,7 @@ Tất cả chỉnh qua `babycontrol-admin.exe`, gồm bốn tab:
 
 | Tab | Nội dung |
 |---|---|
-| Cài đặt | Phút mỗi ngày (1–1440), lớp (1–12), số câu Toán, số câu Tiếng Anh mỗi lần (0–50, tổng ít nhất 1) |
+| Cài đặt | Phút mỗi ngày (1–1440), lớp (1–12), số câu Toán, số câu Tiếng Anh mỗi lần (0–50, tổng ít nhất 1), chặn Task Manager |
 | Giờ học | Thêm hoặc xoá khung giờ theo ngày trong tuần và giờ bắt đầu, kết thúc |
 | Thời gian | Số phút đã dùng và còn lại hôm nay, cộng thêm giờ, nhật ký sử dụng |
 | Mật khẩu | Đổi mật khẩu phụ huynh |

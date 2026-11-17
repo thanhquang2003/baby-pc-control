@@ -62,6 +62,14 @@ def test_update_settings_persists(admin, tmp_path):
     assert loaded.verify_password("parent")
 
 
+def test_task_manager_flag(admin, tmp_path):
+    assert load_config(tmp_path).block_task_manager is True
+    admin.update_settings(30, 3, 3, 2, block_task_manager=False)
+    assert load_config(tmp_path).block_task_manager is False
+    admin.update_settings(30, 3, 3, 2)          # unspecified keeps the value
+    assert load_config(tmp_path).block_task_manager is False
+
+
 def test_invalid_settings_rejected_and_not_saved(admin, tmp_path):
     with pytest.raises(ConfigError):
         admin.update_settings(0, 3, 3, 2)

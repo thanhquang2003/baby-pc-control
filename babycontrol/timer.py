@@ -7,7 +7,7 @@ system clock back cannot reset the day: the latest date ever seen wins.
 from __future__ import annotations
 
 import json
-from datetime import datetime
+from datetime import datetime, timedelta
 from enum import Enum
 from pathlib import Path
 
@@ -20,6 +20,7 @@ EXHAUSTED_SECONDS = 24 * 3600   # used when usage data was tampered with
 # counted as usage beyond this cap.
 MAX_TICK_SECONDS = 120
 HISTORY_DAYS = 60
+MAX_PAUSE_SECONDS = 12 * 3600   # cap on parent mode, also limits clock-rollback abuse
 
 
 class AccessState(Enum):
@@ -28,6 +29,7 @@ class AccessState(Enum):
     ALLOWED = "allowed"                # exercises passed and quota remains
     NO_QUOTA = "no_quota"              # today's time is used up
     CONFIG_ERROR = "config_error"      # settings unreadable/tampered: stay locked
+    PARENT_MODE = "parent_mode"        # parent unlocked the PC with the password
 
 
 class UsageTracker:
@@ -48,7 +50,7 @@ class UsageTracker:
     @staticmethod
     def _fresh() -> dict:
         return {"date": "", "max_date_seen": "", "used_seconds": 0.0,
-                "bonus_seconds": 0.0, "history": {}}
+                "bonus_seconds": 0.0, "history": {}, "paused_until": ""}
 
     @staticmethod
     def _parse(raw: dict) -> dict:
@@ -58,6 +60,7 @@ class UsageTracker:
             "used_seconds": float(raw.get("used_seconds", 0)),
             "bonus_seconds": float(raw.get("bonus_seconds", 0)),
             "history": {str(k): float(v) for k, v in raw.get("history", {}).items()},
+            "paused_until": str(raw.get("paused_until", "")),
         }
 
     def _load(self) -> dict:
@@ -126,6 +129,26 @@ class UsageTracker:
         total = config.daily_limit_minutes * 60 + self._state["bonus_seconds"]
         return max(0.0, total - self._state["used_seconds"])
 
+    def pause(self, minutes: float, now: datetime) -> None:
+        """Parent mode: no quota counted and no lock for `minutes` (capped)."""
+        self._roll(now)
+        seconds = min(max(0.0, minutes * 60), MAX_PAUSE_SECONDS)
+        self._state["paused_until"] = (now + timedelta(seconds=seconds)).isoformat()
+        self._save()
+
+    def pause_remaining(self, now: datetime) -> float:
+        self._roll(now)
+        try:
+            until = datetime.fromisoformat(self._state["paused_until"])
+            return min(max(0.0, (until - now).total_seconds()), MAX_PAUSE_SECONDS)
+        except (ValueError, TypeError):   # empty or unreadable value, or tz mismatch
+            return 0.0
+
+    def end_pause(self, now: datetime) -> None:
+        self._roll(now)
+        self._state["paused_until"] = ""
+        self._save()
+
     def history(self, now: datetime) -> dict[str, float]:
         """Seconds used per day (finished days plus today), oldest first."""
         self._roll(now)
@@ -159,6 +182,8 @@ class UsageTracker:
 def access_state(config: Config, tracker: UsageTracker, now: datetime,
                  exercises_passed: bool) -> AccessState:
     """Decide what the child may do right now."""
+    if tracker.pause_remaining(now) > 0:
+        return AccessState.PARENT_MODE
     if config.is_study_time(now):
         return AccessState.STUDY_OPEN
     if tracker.remaining_seconds(config, now) <= 0:

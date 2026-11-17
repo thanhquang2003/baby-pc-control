@@ -71,6 +71,29 @@ def test_bonus_extends_quota_and_resets_daily(tmp_path):
     assert t.remaining_seconds(CONFIG, MON + timedelta(days=1)) == 30 * 60
 
 
+def test_pause_state(tmp_path):
+    t = UsageTracker(tmp_path)
+    assert t.pause_remaining(MON) == 0
+    t.pause(30, MON)
+    assert t.pause_remaining(MON) == 1800
+    assert t.pause_remaining(MON + timedelta(minutes=10)) == 1200
+    assert access_state(CONFIG, t, MON, False) is AccessState.PARENT_MODE
+    # survives restart, wins over the study window, and expires
+    t2 = UsageTracker(tmp_path)
+    study = datetime(2026, 11, 16, 19, 30)
+    t2.pause(60, study)
+    assert access_state(CONFIG, t2, study, False) is AccessState.PARENT_MODE
+    assert t2.pause_remaining(study + timedelta(minutes=61)) == 0
+    t2.end_pause(study)
+    assert access_state(CONFIG, t2, study, False) is AccessState.STUDY_OPEN
+
+
+def test_pause_is_capped(tmp_path):
+    t = UsageTracker(tmp_path)
+    t.pause(100 * 60, MON)
+    assert t.pause_remaining(MON) == 12 * 3600
+
+
 def test_usage_is_encrypted_on_disk(tmp_path):
     run(UsageTracker(tmp_path), MON, 300)
     raw = (tmp_path / "usage" / "usage.dat").read_bytes()

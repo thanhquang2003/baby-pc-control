@@ -2,9 +2,10 @@
 
 Runs as SYSTEM. A service lives in session 0 and cannot show UI, so it only
 supervises: every few seconds it makes sure the kiosk runs in each interactive
-non-administrator session (restarting it if the child closes it) and logs the
-session off if the kiosk cannot be kept running. It also disables Task Manager
-for those users. Administrator accounts are never touched.
+session (restarting it if it is closed) and logs the session off if the kiosk
+cannot be kept running. It also applies the "block Task Manager" setting.
+Parent and child may share one account; the parent uses the password on the
+lock screen (parent mode).
 
 Install:  scripts\\install_service.ps1     Remove: scripts\\uninstall_service.ps1
 """
@@ -18,7 +19,7 @@ import sys
 import time
 from pathlib import Path
 
-from .config import prepare_data_dir
+from .config import load_config, prepare_data_dir
 from .watchdog import Action, SessionInfo, Watchdog
 
 CYCLE_SECONDS = 5
@@ -62,16 +63,10 @@ def kiosk_sessions() -> set[int]:
     return parse_tasklist_sessions(out)
 
 
-def _user_token_info(session_id: int):
-    """(token, user_sid_string, is_admin_account) for a session's user."""
+def _user_sid_string(session_id: int) -> str:
     token = win32ts.WTSQueryUserToken(session_id)
-    groups = win32security.GetTokenInformation(token, win32security.TokenGroups)
-    admin_sid = win32security.CreateWellKnownSid(win32security.WinBuiltinAdministratorsSid)
-    # Deny-only entries (UAC-filtered admin) are still listed, so this detects
-    # administrator accounts whether or not they are elevated.
-    is_admin = any(sid == admin_sid for sid, _attrs in groups)
     user_sid = win32security.GetTokenInformation(token, win32security.TokenUser)[0]
-    return token, win32security.ConvertSidToStringSid(user_sid), is_admin
+    return win32security.ConvertSidToStringSid(user_sid)
 
 
 def observe_sessions() -> tuple[list[SessionInfo], dict[int, str]]:
@@ -86,11 +81,10 @@ def observe_sessions() -> tuple[list[SessionInfo], dict[int, str]]:
         if not username:
             continue
         try:
-            _token, user_sid, is_admin = _user_token_info(sid)
+            sids[sid] = _user_sid_string(sid)
         except Exception:
             continue
-        sids[sid] = user_sid
-        sessions.append(SessionInfo(sid, username, is_admin, sid in running))
+        sessions.append(SessionInfo(sid, username, sid in running))
     return sessions, sids
 
 
@@ -109,16 +103,29 @@ def launch_kiosk(session_id: int) -> None:
         env, str(exe.parent), startup)
 
 
-def disable_task_manager(user_sid: str) -> None:
-    """Best effort: set the per-user DisableTaskMgr policy for the child."""
+def set_task_manager_blocked(user_sid: str, blocked: bool) -> None:
+    """Best effort: set or clear the per-user DisableTaskMgr policy."""
     try:
-        key = winreg.CreateKey(
-            winreg.HKEY_USERS,
-            rf"{user_sid}\Software\Microsoft\Windows\CurrentVersion\Policies\System")
-        winreg.SetValueEx(key, "DisableTaskMgr", 0, winreg.REG_DWORD, 1)
-        winreg.CloseKey(key)
+        with winreg.CreateKey(
+                winreg.HKEY_USERS,
+                rf"{user_sid}\Software\Microsoft\Windows\CurrentVersion\Policies\System") as key:
+            if blocked:
+                winreg.SetValueEx(key, "DisableTaskMgr", 0, winreg.REG_DWORD, 1)
+            else:
+                try:
+                    winreg.DeleteValue(key, "DisableTaskMgr")
+                except FileNotFoundError:
+                    pass
     except OSError:
         pass
+
+
+def task_manager_should_be_blocked() -> bool:
+    """Config flag; if the config is unreadable, block (fail closed)."""
+    try:
+        return load_config().block_task_manager
+    except Exception:
+        return True
 
 
 def log_error(message: str) -> None:
@@ -159,9 +166,9 @@ class BabyControlService(win32serviceutil.ServiceFramework if sys.platform == "w
 
     def cycle(self) -> None:
         sessions, sids = observe_sessions()
+        blocked = task_manager_should_be_blocked()
         for session in sessions:
-            if not session.is_admin:
-                disable_task_manager(sids[session.session_id])
+            set_task_manager_blocked(sids[session.session_id], blocked)
         actions = self._watchdog.evaluate(
             sessions, time.monotonic(), kiosk_available=kiosk_path().exists())
         for action, session_id in actions:

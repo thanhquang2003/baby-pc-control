@@ -1,9 +1,10 @@
-"""Full-screen kiosk for the child's account (FEAT-004).
+"""Full-screen kiosk (FEAT-004, FEAT-008).
 
-Runs in the child's desktop session (started by the service, see service.py).
+Runs in the user's desktop session (started by the service, see service.py).
 Shows the exercise screen while locked, a small countdown while allowed, and a
-"time is up" screen when the daily quota is used. Exits immediately when run
-by an administrator so the parent is never locked out.
+"time is up" screen when the daily quota is used. Parent and child may share
+the account: the parent enters the password on the lock screen to add time or
+to switch to parent mode (free use for a while, nothing counted).
 """
 from __future__ import annotations
 
@@ -11,38 +12,14 @@ import sys
 from pathlib import Path
 
 from .config import ConfigCorrupt, ConfigError, load_config
-from .controller import DEFAULT_OVERRIDE_MINUTES, KioskController, View
+from .controller import (
+    DEFAULT_OVERRIDE_MINUTES, DEFAULT_PARENT_MODE_MINUTES, KioskController, View,
+)
 from .timer import AccessState, UsageTracker
 
 CONFIG_RELOAD_EVERY = 10   # ticks (seconds)
 BG = "#1e2a3a"
 FG = "#ffffff"
-
-
-ADMIN_SID = "S-1-5-32-544"
-
-
-def groups_contain_admin(whoami_output: str) -> bool:
-    """True if the Administrators SID is in `whoami /groups` output.
-
-    A non-elevated administrator still lists the group (as deny-only), so this
-    identifies admin *accounts*, unlike IsUserAnAdmin() which depends on UAC.
-    """
-    return ADMIN_SID in whoami_output
-
-
-def is_admin() -> bool:
-    if sys.platform != "win32":
-        return False
-    import subprocess
-    try:
-        out = subprocess.run(
-            ["whoami", "/groups", "/fo", "csv"], capture_output=True, text=True,
-            timeout=15, creationflags=0x08000000,   # CREATE_NO_WINDOW
-        ).stdout
-    except Exception:
-        return False
-    return groups_contain_admin(out)
 
 
 def format_mmss(seconds: float) -> str:
@@ -87,6 +64,9 @@ class KioskApp:
         self.pw_entry.pack(side="left", padx=6)
         tk.Button(self.footer, text=f"Thêm {DEFAULT_OVERRIDE_MINUTES} phút",
                   command=self._on_override).pack(side="left")
+        tk.Button(self.footer,
+                  text=f"Bố mẹ dùng máy {DEFAULT_PARENT_MODE_MINUTES // 60} giờ",
+                  command=self._on_parent_mode).pack(side="left", padx=6)
         self.override_msg = tk.Label(self.footer, text="", bg=BG, fg="#ff8a80")
         self.override_msg.pack(side="left", padx=8)
         return win
@@ -99,7 +79,8 @@ class KioskApp:
         win.withdraw()
         self.hud_label = tk.Label(win, text="", bg="#000000", fg="#7CFC00",
                                   font=("Segoe UI", 14, "bold"), padx=10, pady=4)
-        self.hud_label.pack()
+        self.hud_label.pack(side="left")
+        self.hud_button = tk.Button(win, text="Kết thúc", command=self._on_end_parent)
         return win
 
     # --- rendering ------------------------------------------------------
@@ -182,7 +163,13 @@ class KioskApp:
             self.hud.withdraw()
             return
         color = {"5min": "#ffd54f", "1min": "#ff5252"}.get(view.warning, "#7CFC00")
-        self.hud_label.config(text=f"Còn {format_mmss(view.remaining_seconds)}", fg=color)
+        if view.state is AccessState.PARENT_MODE:
+            text = f"Chế độ bố mẹ: còn {format_mmss(view.remaining_seconds)}"
+            self.hud_button.pack(side="left", padx=4)
+        else:
+            text = f"Còn {format_mmss(view.remaining_seconds)}"
+            self.hud_button.pack_forget()
+        self.hud_label.config(text=text, fg=color)
         self.hud.update_idletasks()
         width = self.hud.winfo_reqwidth()
         self.hud.geometry(f"+{self.hud.winfo_screenwidth() - width - 12}+8")
@@ -198,7 +185,17 @@ class KioskApp:
         self._tick(reschedule=False)
 
     def _on_override(self) -> None:
-        if self.controller.parent_override(self.pw_entry.get()):
+        self._parent_action(self.controller.parent_override)
+
+    def _on_parent_mode(self) -> None:
+        self._parent_action(self.controller.parent_pause)
+
+    def _on_end_parent(self) -> None:
+        self.controller.end_parent_mode()
+        self._tick(reschedule=False)
+
+    def _parent_action(self, action) -> None:
+        if action(self.pw_entry.get()):
             self.override_msg.config(text="")
         else:
             self.override_msg.config(text="Sai mật khẩu")
@@ -224,8 +221,6 @@ class KioskApp:
 
 
 def main() -> int:
-    if is_admin():
-        return 0   # never lock the parent
     KioskApp().run()
     return 0
 

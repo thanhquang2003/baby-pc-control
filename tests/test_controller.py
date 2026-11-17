@@ -118,6 +118,38 @@ def test_parent_override(setup):
     assert view.remaining_seconds == 15 * 60
 
 
+def test_parent_mode_unlocks_without_exercises_and_counts_nothing(setup):
+    ctl, clock = setup
+    assert ctl.parent_pause("wrong", 120) is False
+    assert ctl.update().state is AccessState.NEED_EXERCISE
+    assert ctl.parent_pause("parent", 120) is True
+    view = ctl.update()
+    assert view.state is AccessState.PARENT_MODE and view.remaining_seconds == 7200
+    for _ in range(30):
+        clock.advance(60)
+        view = ctl.update()
+    assert view.state is AccessState.PARENT_MODE
+    assert ctl.tracker.used_seconds(clock.now) == 0
+    assert view.remaining_seconds == 7200 - 30 * 60
+
+
+def test_parent_mode_ends_and_locks_again(setup):
+    ctl, clock = setup
+    ctl.parent_pause("parent", 2)
+    clock.advance(60)
+    assert ctl.update().warning == "1min"
+    clock.advance(61)
+    assert ctl.update().state is AccessState.NEED_EXERCISE
+
+
+def test_parent_mode_can_be_ended_early(setup):
+    ctl, _ = setup
+    ctl.parent_pause("parent", 120)
+    assert ctl.update().state is AccessState.PARENT_MODE
+    ctl.end_parent_mode()
+    assert ctl.update().state is AccessState.NEED_EXERCISE
+
+
 def test_unreadable_config_locks_and_recovers(setup):
     ctl, clock = setup
     pass_exercises(ctl)
