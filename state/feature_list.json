@@ -197,10 +197,10 @@
         "dev:mỗi lần đẩy tag tự có file exe mới"
       ],
       "complexity": "medium",
-      "status": "in-progress",
+      "status": "done",
       "layer": "Full-stack",
       "dependencies": [],
-      "evidence": null,
+      "evidence": "PRs #9 (3df7ca8) and #10 (71c5971). CI on windows-latest: 171 tests passed incl. DPAPI. Release build dry-run on Windows: 3 exes + 40.5 MB ZIP, sha256 verified (run 44036128764). Tag-triggered upload not yet exercised.",
       "created": "2026-11-17",
       "updated": "2026-11-17"
     }
