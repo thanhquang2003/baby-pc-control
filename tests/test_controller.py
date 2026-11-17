@@ -180,6 +180,37 @@ def test_parent_mode_unlocks_without_exercises_and_counts_nothing(setup):
     assert view.remaining_seconds == 7200 - 30 * 60
 
 
+@pytest.mark.parametrize("text,expected", [
+    ("30", 30), (" 45 ", 45), ("1", 1), ("720", 720),
+    ("0", None), ("721", None), ("-5", None), ("abc", None), ("", None), ("2.5", None),
+])
+def test_parse_minutes(text, expected):
+    from babycontrol.controller import parse_minutes
+    assert parse_minutes(text) == expected
+
+
+@pytest.mark.parametrize("minutes", [45, 7, 480])
+def test_parent_chooses_the_duration_of_parent_mode(setup, minutes):
+    ctl, _ = setup
+    assert ctl.parent_pause("parent", minutes)
+    assert ctl.update().remaining_seconds == minutes * 60
+
+
+def test_parent_chooses_the_bonus_minutes(setup):
+    ctl, _ = setup
+    ctl.update()
+    assert ctl.parent_override("parent", 20)
+    assert ctl.update().remaining_seconds == 10 * 60 + 20 * 60   # 10-min quota + 20
+
+
+@pytest.mark.parametrize("minutes", [0, -1, 721])
+def test_out_of_range_minutes_are_refused(setup, minutes):
+    ctl, _ = setup
+    assert ctl.parent_pause("parent", minutes) is False
+    assert ctl.parent_override("parent", minutes) is False
+    assert ctl.update().state is AccessState.NEED_EXERCISE
+
+
 def test_parent_mode_ends_and_locks_again(setup):
     ctl, clock = setup
     ctl.parent_pause("parent", 2)

@@ -41,8 +41,9 @@ Các bước mỗi lần con dùng máy:
 2. Ngoài khung giờ học: kiosk hiện bài tập. Làm đủ số câu đúng thì mở máy.
 3. Khi đang dùng máy, kiosk đếm giờ. Hết hạn mức thì khoá lại và hiện "Hết giờ dùng máy hôm nay".
 4. Trong khung giờ học: kiosk ẩn, không đếm giờ.
-5. Bố mẹ nhập mật khẩu ở cuối màn hình khoá: **"Thêm 15 phút"** (bỏ qua bài tập) hoặc **"Bố mẹ dùng máy 2 giờ"**
-   (chế độ bố mẹ: không khoá, không đếm giờ; bấm "Kết thúc" ở góc màn hình để quay lại giám sát sớm).
+5. Bố mẹ nhập mật khẩu và **tự chọn số phút** (1–720, mặc định 30) ở cuối màn hình khoá, rồi bấm:
+   **"Thêm giờ cho con"** (cộng số phút đó cho con và bỏ qua bài tập) hoặc **"Bố mẹ dùng máy"**
+   (chế độ bố mẹ trong số phút đã chọn: không khoá, không đếm giờ; bấm "Kết thúc" ở góc màn hình để quay lại giám sát sớm).
 
 Tất cả các tài khoản, kể cả tài khoản quản trị, đều được giám sát. Bố mẹ dùng máy bằng cách vào chế độ bố mẹ.
 

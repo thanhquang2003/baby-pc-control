@@ -13,8 +13,17 @@ from .timer import AccessState, UsageTracker, access_state
 
 WARN_5_MIN = 300
 WARN_1_MIN = 60
-DEFAULT_OVERRIDE_MINUTES = 15
-DEFAULT_PARENT_MODE_MINUTES = 120
+DEFAULT_PARENT_MINUTES = 30      # pre-filled on the lock screen; the parent chooses
+MAX_PARENT_MINUTES = 12 * 60     # same cap as the tracker's MAX_PAUSE_SECONDS
+
+
+def parse_minutes(text: str) -> int | None:
+    """Minutes typed by the parent, or None if not a whole number in 1..720."""
+    try:
+        minutes = int(str(text).strip())
+    except ValueError:
+        return None
+    return minutes if 1 <= minutes <= MAX_PARENT_MINUTES else None
 
 
 @dataclass
@@ -108,9 +117,11 @@ class KioskController:
             self.session = None
         return ok
 
-    def parent_pause(self, password: str,
-                     minutes: int = DEFAULT_PARENT_MODE_MINUTES) -> bool:
-        """Parent password: use the PC freely for `minutes`; nothing is counted."""
+    def parent_pause(self, password: str, minutes: int = DEFAULT_PARENT_MINUTES) -> bool:
+        """Parent password: use the PC freely for `minutes` (chosen by the
+        parent, 1..720); nothing is counted."""
+        if not 1 <= minutes <= MAX_PARENT_MINUTES:
+            return False
         if self.config is None or not self.config.verify_password(password):
             return False
         self.tracker.pause(minutes, self._now())
@@ -120,9 +131,11 @@ class KioskController:
         """Back to normal supervision (no password needed: it only restricts)."""
         self.tracker.end_pause(self._now())
 
-    def parent_override(self, password: str,
-                        minutes: int = DEFAULT_OVERRIDE_MINUTES) -> bool:
-        """Parent password grants extra minutes today and skips the exercises."""
+    def parent_override(self, password: str, minutes: int = DEFAULT_PARENT_MINUTES) -> bool:
+        """Parent password grants the child `minutes` extra today (chosen by the
+        parent, 1..720) and skips the exercises."""
+        if not 1 <= minutes <= MAX_PARENT_MINUTES:
+            return False
         if self.config is None or not self.config.verify_password(password):
             return False
         self.tracker.add_bonus(minutes * 60, self._now())
