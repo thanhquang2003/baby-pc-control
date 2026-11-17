@@ -13,7 +13,7 @@ from pathlib import Path
 
 from .config import ConfigCorrupt, ConfigError, load_config
 from .controller import (
-    DEFAULT_OVERRIDE_MINUTES, DEFAULT_PARENT_MODE_MINUTES, KioskController, View,
+    DEFAULT_PARENT_MINUTES, MAX_PARENT_MINUTES, KioskController, View, parse_minutes,
 )
 from .timer import AccessState, UsageTracker
 
@@ -76,10 +76,13 @@ class KioskApp:
         tk.Label(self.footer, text="Phụ huynh:", bg=BG, fg="#9fb3c8").pack(side="left")
         self.pw_entry = tk.Entry(self.footer, show="*", width=14)
         self.pw_entry.pack(side="left", padx=6)
-        tk.Button(self.footer, text=f"Thêm {DEFAULT_OVERRIDE_MINUTES} phút",
+        tk.Label(self.footer, text="Số phút:", bg=BG, fg="#9fb3c8").pack(side="left", padx=(8, 0))
+        self.minutes_var = tk.StringVar(value=str(DEFAULT_PARENT_MINUTES))
+        tk.Spinbox(self.footer, from_=1, to=MAX_PARENT_MINUTES, increment=5, width=5,
+                   textvariable=self.minutes_var).pack(side="left", padx=6)
+        tk.Button(self.footer, text="Thêm giờ cho con",
                   command=self._on_override).pack(side="left")
-        tk.Button(self.footer,
-                  text=f"Bố mẹ dùng máy {DEFAULT_PARENT_MODE_MINUTES // 60} giờ",
+        tk.Button(self.footer, text="Bố mẹ dùng máy",
                   command=self._on_parent_mode).pack(side="left", padx=6)
         self.override_msg = tk.Label(self.footer, text="", bg=BG, fg="#ff8a80")
         self.override_msg.pack(side="left", padx=8)
@@ -247,7 +250,11 @@ class KioskApp:
         self._tick(reschedule=False)
 
     def _parent_action(self, action) -> None:
-        if action(self.pw_entry.get()):
+        minutes = parse_minutes(self.minutes_var.get())
+        if minutes is None:
+            self.override_msg.config(text=f"Số phút phải từ 1 đến {MAX_PARENT_MINUTES}")
+            return
+        if action(self.pw_entry.get(), minutes):
             self.override_msg.config(text="")
         else:
             self.override_msg.config(text="Sai mật khẩu")

@@ -93,3 +93,43 @@ def test_progress_text_hides_disabled_subject_and_has_fallback():
     assert kiosk.progress_text(only_english) == "Tiếng Anh 1/3"
     no_progress = View(AccessState.NEED_EXERCISE, 0, correct=1, required=4)
     assert kiosk.progress_text(no_progress) == "Đã đúng 1/4"
+
+
+# --- FEAT-011: the parent picks the number of minutes on the lock screen ---------
+
+def make_footer_app(minutes_text):
+    app = make_app()
+    app.minutes_var = MagicMock()
+    app.minutes_var.get.return_value = minutes_text
+    app.pw_entry = MagicMock()
+    app.pw_entry.get.return_value = "secret"
+    app.override_msg = MagicMock()
+    app.controller = MagicMock()
+    app._tick = MagicMock()
+    return app
+
+
+def test_chosen_minutes_are_passed_to_the_action():
+    app = make_footer_app("45")
+    app.controller.parent_pause.return_value = True
+    app._on_parent_mode()
+    app.controller.parent_pause.assert_called_once_with("secret", 45)
+    app.controller.parent_override.return_value = True
+    app._on_override()
+    app.controller.parent_override.assert_called_once_with("secret", 45)
+
+
+def test_invalid_minutes_are_rejected_without_touching_the_password():
+    for bad in ("", "abc", "0", "9999"):
+        app = make_footer_app(bad)
+        app._on_parent_mode()
+        app.controller.parent_pause.assert_not_called()
+        assert "Số phút" in app.override_msg.config.call_args.kwargs["text"]
+        app.pw_entry.delete.assert_not_called()      # the typed password is kept
+
+
+def test_wrong_password_shows_message():
+    app = make_footer_app("30")
+    app.controller.parent_pause.return_value = False
+    app._on_parent_mode()
+    assert app.override_msg.config.call_args.kwargs["text"] == "Sai mật khẩu"
