@@ -114,10 +114,10 @@
         "parent:con không sửa được file cấu hình/giờ bằng Notepad"
       ],
       "complexity": "medium",
-      "status": "in-progress",
+      "status": "done",
       "layer": "Backend",
       "dependencies": [],
-      "evidence": null,
+      "evidence": "https://github.com/thanhquang2003/baby-pc-control/pull/1 (squash d3c8f95). 103 tests passed; DPAPI path needs Windows test",
       "created": "2026-11-17",
       "updated": "2026-11-17"
     },
@@ -130,7 +130,7 @@
         "parent:tạm dừng giám sát bằng mật khẩu"
       ],
       "complexity": "large",
-      "status": "planned",
+      "status": "in-progress",
       "layer": "Full-stack",
       "dependencies": [
         "FEAT-007"
