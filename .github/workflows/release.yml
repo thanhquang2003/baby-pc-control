@@ -2,10 +2,21 @@ name: Release build
 
 # Builds the Windows executables and a ready-to-install ZIP.
 #  - push a tag like v2.2.0  -> ZIP + checksum are attached to that GitHub Release
-#  - Run workflow (manual)   -> ZIP is only kept as a workflow artifact (a dry run)
+#  - pull request touching the code/packaging, or Run workflow (manual)
+#                            -> dry run: the ZIP is only kept as a workflow artifact
 on:
   push:
     tags: ["v*"]
+  pull_request:
+    branches: [main]
+    paths:
+      - "babycontrol/**"
+      - "scripts/**"
+      - "packaging/**"
+      - "requirements*.txt"
+      - "CAI_DAT.bat"
+      - "GO_CAI_DAT.bat"
+      - ".github/workflows/release.yml"
   workflow_dispatch:
 
 permissions:
