@@ -26,6 +26,54 @@ def test_first_run_sets_password_and_logs_in(tmp_path):
     assert again.login("parent") and not AdminSession(tmp_path).login("nope")
 
 
+def kiosk_view(tmp_path):
+    return UsageTracker(tmp_path, sync_interval=0)
+
+
+def test_creating_the_password_does_not_lock_until_the_tool_closes(admin, tmp_path):
+    kiosk = kiosk_view(tmp_path)
+    assert kiosk.pause_remaining(NOW) == 180      # PARENT_SESSION_MINUTES
+    admin.end_parent_session()                    # parent closes the tool
+    assert kiosk.pause_remaining(NOW) == 0        # supervision applies from now on
+
+
+def test_keep_alive_renews_the_parent_session(tmp_path):
+    clock = [NOW]
+    session = AdminSession(tmp_path, now_fn=lambda: clock[0])
+    session.set_initial_password("parent")
+    kiosk = kiosk_view(tmp_path)
+    clock[0] = NOW + timedelta(seconds=150)       # almost expired...
+    assert kiosk.pause_remaining(clock[0]) == 30
+    session.keep_alive()
+    assert kiosk.pause_remaining(clock[0]) == 180
+
+
+def test_crashed_tool_leaves_supervision_off_only_briefly(admin, tmp_path):
+    kiosk = kiosk_view(tmp_path)
+    assert kiosk.pause_remaining(NOW + timedelta(minutes=4)) == 0   # no keep_alive
+
+
+def test_closing_does_not_end_a_longer_parent_mode_chosen_on_the_lock_screen(tmp_path):
+    kiosk = kiosk_view(tmp_path)
+    kiosk.pause(60, NOW)                          # parent chose 60 min on the lock screen
+    session = AdminSession(tmp_path, now_fn=lambda: NOW)
+    session.set_initial_password("parent")
+    assert kiosk.pause_remaining(NOW) == 3600     # not shortened to 3 minutes
+    session.end_parent_session()
+    assert kiosk.pause_remaining(NOW) == 3600     # and not ended
+
+
+def test_logging_in_starts_a_parent_session_only_when_asked(admin, tmp_path):
+    admin.end_parent_session()
+    again = AdminSession(tmp_path, now_fn=lambda: NOW)
+    assert again.login("parent")                  # e.g. the uninstall confirmation
+    assert kiosk_view(tmp_path).pause_remaining(NOW) == 0
+    again.begin_parent_session()
+    assert kiosk_view(tmp_path).pause_remaining(NOW) == 180
+    again.end_parent_session()
+    assert kiosk_view(tmp_path).pause_remaining(NOW) == 0
+
+
 def test_corrupt_config_lets_parent_start_over(admin, tmp_path):
     (tmp_path / "config.dat").write_bytes(b"junk")
     (tmp_path / "config.bak").write_bytes(b"junk")
