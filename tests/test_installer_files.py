@@ -77,6 +77,7 @@ def test_workflows_exist_and_run_on_windows():
 def test_release_workflow_packages_files_that_exist():
     text = (ROOT / ".github/workflows/release.yml").read_text(encoding="utf-8")
     assert "tags:" in text and "workflow_dispatch" in text
+    assert "pull_request:" in text                  # build is checked before merging
     assert "contents: write" in text                # needed to upload release assets
     assert "if: github.ref_type == 'tag'" in text   # manual runs never publish
     for exe in ("babycontrol-service", "babycontrol-kiosk", "babycontrol-admin"):
