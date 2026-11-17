@@ -148,12 +148,12 @@
         "parent:gỡ cài đặt dễ dàng"
       ],
       "complexity": "large",
-      "status": "in-progress",
+      "status": "done",
       "layer": "Full-stack",
       "dependencies": [
         "FEAT-008"
       ],
-      "evidence": null,
+      "evidence": "https://github.com/thanhquang2003/baby-pc-control/pull/3 (squash ebca6af). 123 tests passed; PowerShell scripts static-checked only, untested on Windows",
       "created": "2026-11-17",
       "updated": "2026-11-17"
     }
