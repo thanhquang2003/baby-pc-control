@@ -57,6 +57,7 @@ Chỉ cần máy Windows 10/11 **có kết nối Internet**. Không cần cài g
 4. Chờ khoảng 5–10 phút, **đừng tắt cửa sổ** cho đến khi thấy chữ **HOÀN TẤT CÀI ĐẶT** (chữ xanh).
 5. Cửa sổ **BabyControl** tự mở ra: tạo **mật khẩu phụ huynh**, rồi đặt số phút mỗi ngày, lớp của con,
    số câu hỏi mỗi môn và các khung giờ học tự do. Xong là máy đã được bảo vệ.
+   Trước khi tạo mật khẩu, máy **không bị khoá** (chỉ hiện dòng nhắc nhỏ ở góc màn hình), nên bạn luôn có thời gian thiết lập.
 
 Sau này, mở lại cài đặt bằng biểu tượng **BabyControl - Phu huynh** trên màn hình nền.
 Trình cài đặt tự cài Python nếu máy chưa có, nên lần đầu có thể lâu hơn. Cài lại lên bản mới chỉ cần chạy lại

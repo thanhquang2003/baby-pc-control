@@ -30,6 +30,7 @@ class AccessState(Enum):
     NO_QUOTA = "no_quota"              # today's time is used up
     CONFIG_ERROR = "config_error"      # settings unreadable/tampered: stay locked
     PARENT_MODE = "parent_mode"        # parent unlocked the PC with the password
+    NOT_SET_UP = "not_set_up"          # no parent password yet: do not lock anyone out
 
 
 class UsageTracker:

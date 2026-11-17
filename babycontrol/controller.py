@@ -56,6 +56,12 @@ class KioskController:
         """Advance the clock by one tick and return what the UI should show."""
         if self.config is None:
             return View(AccessState.CONFIG_ERROR, 0.0)
+        if not self.config.password_hash:
+            # First run: nobody could unlock the PC without a parent password,
+            # so supervision stays off until the parent finishes setup.
+            self.exercises_passed = False
+            self.session = None
+            return View(AccessState.NOT_SET_UP, 0.0)
         now = self._now()
         state = self._state()
         self.tracker.tick(now, self._mono(),
