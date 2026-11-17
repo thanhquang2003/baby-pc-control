@@ -130,12 +130,12 @@
         "parent:tạm dừng giám sát bằng mật khẩu"
       ],
       "complexity": "large",
-      "status": "in-progress",
+      "status": "done",
       "layer": "Full-stack",
       "dependencies": [
         "FEAT-007"
       ],
-      "evidence": null,
+      "evidence": "https://github.com/thanhquang2003/baby-pc-control/pull/2 (squash c1a8265). 109 tests passed; Windows service/Tk untested",
       "created": "2026-11-17",
       "updated": "2026-11-17"
     },
@@ -148,7 +148,7 @@
         "parent:gỡ cài đặt dễ dàng"
       ],
       "complexity": "large",
-      "status": "planned",
+      "status": "in-progress",
       "layer": "Full-stack",
       "dependencies": [
         "FEAT-008"
