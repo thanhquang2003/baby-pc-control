@@ -156,6 +156,22 @@
       "evidence": "https://github.com/thanhquang2003/baby-pc-control/pull/3 (squash ebca6af). 123 tests passed; PowerShell scripts static-checked only, untested on Windows",
       "created": "2026-11-17",
       "updated": "2026-11-17"
+    },
+    {
+      "id": "FEAT-010",
+      "name": "Bù câu sai cùng môn và hiện tiến độ từng môn",
+      "description": "Sai câu Toán thì câu kế tiếp là câu Toán khác (Anh tương tự), mỗi môn phải đủ số câu đúng đã cấu hình riêng nên không học lệch. Kiosk hiện tiến độ theo môn (Toán x/y, Tiếng Anh x/y). Công cụ phụ huynh đặt tên rõ hai ô số câu mỗi môn.",
+      "use_cases": [
+        "child:thấy mình còn thiếu bao nhiêu câu mỗi môn",
+        "parent:đặt riêng số câu Toán và Tiếng Anh"
+      ],
+      "complexity": "small",
+      "status": "in-progress",
+      "layer": "Full-stack",
+      "dependencies": [],
+      "evidence": null,
+      "created": "2026-11-17",
+      "updated": "2026-11-17"
     }
   ]
 }
