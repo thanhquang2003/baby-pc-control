@@ -27,7 +27,7 @@ class View:
 
 
 class KioskController:
-    def __init__(self, config: Config, tracker: UsageTracker,
+    def __init__(self, config: Config | None, tracker: UsageTracker,
                  now_fn: Callable[[], datetime] = datetime.now,
                  mono_fn: Callable[[], float] = time.monotonic,
                  rng: random.Random | None = None) -> None:
@@ -39,9 +39,13 @@ class KioskController:
         self.exercises_passed = False
         self.session: ExerciseSession | None = None
 
-    def set_config(self, config: Config) -> None:
-        """Apply a freshly loaded config (changes take effect immediately)."""
+    def set_config(self, config: Config | None) -> None:
+        """Apply a freshly loaded config (changes take effect immediately).
+        None means the config is unreadable: the machine stays locked."""
         self.config = config
+        if config is None:
+            self.exercises_passed = False
+            self.session = None
 
     def _state(self) -> AccessState:
         return access_state(self.config, self.tracker, self._now(),
@@ -49,6 +53,8 @@ class KioskController:
 
     def update(self) -> View:
         """Advance the clock by one tick and return what the UI should show."""
+        if self.config is None:
+            return View(AccessState.CONFIG_ERROR, 0.0)
         now = self._now()
         state = self._state()
         self.tracker.tick(now, self._mono(),
@@ -92,7 +98,7 @@ class KioskController:
     def parent_override(self, password: str,
                         minutes: int = DEFAULT_OVERRIDE_MINUTES) -> bool:
         """Parent password grants extra minutes today and skips the exercises."""
-        if not self.config.verify_password(password):
+        if self.config is None or not self.config.verify_password(password):
             return False
         self.tracker.add_bonus(minutes * 60, self._now())
         self.exercises_passed = True

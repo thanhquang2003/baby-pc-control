@@ -7,12 +7,14 @@ system clock back cannot reset the day: the latest date ever seen wins.
 from __future__ import annotations
 
 import json
-import os
-from datetime import date, datetime
+from datetime import datetime
 from enum import Enum
 from pathlib import Path
 
-from .config import Config, usage_dir
+from .config import Config, data_dir, usage_dir
+from .secure_store import SecureStore, StoreError
+
+EXHAUSTED_SECONDS = 24 * 3600   # used when usage data was tampered with
 
 # A gap longer than this between ticks (sleep, hibernate, service stop) is not
 # counted as usage beyond this cap.
@@ -25,40 +27,86 @@ class AccessState(Enum):
     NEED_EXERCISE = "need_exercise"    # must pass exercises first
     ALLOWED = "allowed"                # exercises passed and quota remains
     NO_QUOTA = "no_quota"              # today's time is used up
+    CONFIG_ERROR = "config_error"      # settings unreadable/tampered: stay locked
 
 
 class UsageTracker:
-    def __init__(self, base: Path | None = None) -> None:
-        self._path = (base or usage_dir()) / "usage.json"
+    def __init__(self, root: Path | None = None) -> None:
+        """`root` is the BabyControl data directory (holds the key); usage
+        data is stored encrypted under `root/usage`."""
+        root = root or data_dir()
+        self._store = SecureStore(root)
+        folder = usage_dir(root)
+        self._path = folder / "usage.dat"
+        self._bak = folder / "usage.bak"
+        self._legacy = folder / "usage.json"      # plain file written by v1
         self._last_mono: float | None = None
+        self._corrupt = False
         self._state = self._load()
 
     # --- persistence ----------------------------------------------------
+    @staticmethod
+    def _fresh() -> dict:
+        return {"date": "", "max_date_seen": "", "used_seconds": 0.0,
+                "bonus_seconds": 0.0, "history": {}}
+
+    @staticmethod
+    def _parse(raw: dict) -> dict:
+        return {
+            "date": raw["date"],
+            "max_date_seen": raw.get("max_date_seen", raw["date"]),
+            "used_seconds": float(raw.get("used_seconds", 0)),
+            "bonus_seconds": float(raw.get("bonus_seconds", 0)),
+            "history": {str(k): float(v) for k, v in raw.get("history", {}).items()},
+        }
+
     def _load(self) -> dict:
-        try:
-            raw = json.loads(self._path.read_text(encoding="utf-8"))
-            return {
-                "date": raw["date"],
-                "max_date_seen": raw.get("max_date_seen", raw["date"]),
-                "used_seconds": float(raw.get("used_seconds", 0)),
-                "bonus_seconds": float(raw.get("bonus_seconds", 0)),
-                "history": {str(k): float(v) for k, v in raw.get("history", {}).items()},
-            }
-        except (OSError, ValueError, KeyError, AttributeError):
-            return {"date": "", "max_date_seen": "", "used_seconds": 0.0,
-                    "bonus_seconds": 0.0, "history": {}}
+        """Newest readable copy wins. If data exists but none is readable
+        (deleted copy is covered by the backup; garbage/edited is not), fail
+        closed: today's quota is treated as used up."""
+        unreadable = False
+        for path in (self._path, self._bak):
+            try:
+                data = self._store.read(path)
+            except StoreError:
+                unreadable = True
+                continue
+            if data is None:
+                continue
+            try:
+                return self._parse(json.loads(data))
+            except (ValueError, KeyError, AttributeError, TypeError):
+                unreadable = True
+        if self._legacy.exists():
+            try:
+                return self._parse(json.loads(self._legacy.read_text(encoding="utf-8")))
+            except (OSError, ValueError, KeyError, AttributeError, TypeError):
+                unreadable = True
+        self._corrupt = unreadable
+        return self._fresh()
 
     def _save(self) -> None:
-        self._path.parent.mkdir(parents=True, exist_ok=True)
-        tmp = self._path.with_suffix(".tmp")
-        tmp.write_text(json.dumps(self._state), encoding="utf-8")
-        os.replace(tmp, self._path)
+        """Best effort: the counter keeps working in memory if the disk write
+        fails (e.g. read-only directory)."""
+        data = json.dumps(self._state).encode("utf-8")
+        try:
+            self._store.write(self._path, data)
+            self._store.write(self._bak, data)
+            if self._legacy.exists():
+                self._legacy.unlink()
+        except (OSError, StoreError):
+            pass
 
     # --- day rollover ---------------------------------------------------
     def _roll(self, now: datetime) -> None:
         today = now.date().isoformat()
         effective = max(today, self._state["max_date_seen"])
         self._state["max_date_seen"] = effective
+        if self._corrupt:
+            self._corrupt = False
+            self._state.update(date=effective, used_seconds=EXHAUSTED_SECONDS,
+                               bonus_seconds=0.0)
+            return
         if self._state["date"] != effective:
             previous = self._state["date"]
             if previous and self._state["used_seconds"] > 0:

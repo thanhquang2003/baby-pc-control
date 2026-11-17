@@ -71,9 +71,44 @@ def test_bonus_extends_quota_and_resets_daily(tmp_path):
     assert t.remaining_seconds(CONFIG, MON + timedelta(days=1)) == 30 * 60
 
 
-def test_corrupt_state_file_falls_back(tmp_path):
-    (tmp_path / "usage.json").write_text("{not json")
+def test_usage_is_encrypted_on_disk(tmp_path):
+    run(UsageTracker(tmp_path), MON, 300)
+    raw = (tmp_path / "usage" / "usage.dat").read_bytes()
+    assert b"used_seconds" not in raw and b"300" not in raw
+
+
+def test_fresh_install_starts_at_zero(tmp_path):
     assert UsageTracker(tmp_path).used_seconds(MON) == 0
+
+
+def test_tampered_usage_fails_closed(tmp_path):
+    run(UsageTracker(tmp_path), MON, 60)
+    (tmp_path / "usage" / "usage.dat").write_bytes(b"edited")
+    (tmp_path / "usage" / "usage.bak").write_bytes(b"edited")
+    t = UsageTracker(tmp_path)
+    assert t.remaining_seconds(CONFIG, MON) == 0
+    # a new day starts clean again
+    assert t.remaining_seconds(CONFIG, MON + timedelta(days=1)) == 30 * 60
+
+
+def test_deleting_one_copy_keeps_usage(tmp_path):
+    run(UsageTracker(tmp_path), MON, 300)
+    (tmp_path / "usage" / "usage.dat").unlink()
+    assert UsageTracker(tmp_path).used_seconds(MON) == 300
+
+
+def test_legacy_plain_usage_is_read(tmp_path):
+    (tmp_path / "usage").mkdir()
+    (tmp_path / "usage" / "usage.json").write_text(
+        '{"date": "2026-11-16", "used_seconds": 120}')
+    assert UsageTracker(tmp_path).used_seconds(MON) == 120
+
+
+def test_unwritable_storage_does_not_crash(tmp_path):
+    t = UsageTracker(tmp_path / "missing" / "deeper")
+    (tmp_path / "missing").write_text("a file blocks the directory")
+    run(t, MON, 120)
+    assert t.used_seconds(MON) == 120      # still counted in memory
 
 
 def test_access_states(tmp_path):

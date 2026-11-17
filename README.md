@@ -27,7 +27,7 @@ Công cụ quản lý giờ dùng máy tính Windows cho trẻ em, viết bằng
  │ cấu hình, mật khẩu,    │             │ bài tập, đếm giờ, màn hình   │
  │ cộng giờ, nhật ký      │             │ khoá / đồng hồ ở góc màn hình│
  └──────────┬─────────────┘             └───────────────▲──────────────┘
-            │ ghi config.json                           │ bật lại nếu bị tắt
+            │ ghi config.dat (mã hoá)                   │ bật lại nếu bị tắt
             ▼                                           │
    %PROGRAMDATA%\BabyControl ◄──── babycontrol-service.exe (SYSTEM)
    (chỉ admin ghi; usage\ cho kiosk ghi)       giám sát các phiên đăng nhập
@@ -87,7 +87,12 @@ Tất cả chỉnh qua `babycontrol-admin.exe`, gồm bốn tab:
 Thay đổi có hiệu lực trong khoảng 10 giây, không cần khởi động lại.
 
 Dữ liệu nằm ở `%PROGRAMDATA%\BabyControl` (đổi bằng biến môi trường `BABYCONTROL_HOME`):
-`config.json` (chỉ admin ghi được, mật khẩu lưu dạng băm PBKDF2) và thư mục `usage\` (số liệu giờ).
+`config.dat` (cấu hình) và thư mục `usage\` (số liệu giờ). Cả hai được **mã hoá và có chữ ký** (Fernet),
+khoá nằm trong `key.bin` được bọc bằng DPAPI của Windows, nên không sửa được bằng Notepad.
+Mật khẩu phụ huynh lưu dạng băm PBKDF2. Mỗi file có một bản sao `.bak`.
+Nếu file bị sửa, hỏng hoặc bị xoá sau khi đã cài đặt, kiosk **khoá máy** (không tự về mặc định) cho đến khi phụ huynh
+mở công cụ phụ huynh và tạo lại cài đặt; số liệu giờ hỏng thì coi như hôm nay đã hết giờ.
+Dữ liệu từ bản v1 (`config.json`, `usage.json`) được tự chuyển sang dạng mã hoá.
 
 ## Cấu trúc mã nguồn
 
@@ -116,8 +121,9 @@ xem `AGENTS.md`.
 
 ## Hạn chế đã biết
 
-- Kiosk chạy bằng tài khoản của con và ghi số liệu giờ vào `usage\usage.json`, nên một đứa trẻ rành kỹ thuật
-  có thể sửa file này. Cách siết chặt hơn là chuyển việc đếm giờ vào service.
+- Mã hoá chỉ chặn việc sửa file thông thường. Người dùng thành thạo kỹ thuật và có quyền quản trị vẫn có thể
+  xoá cả file lẫn khoá (kiosk sẽ khoá máy nếu phát hiện, nhưng công cụ phụ huynh cho tạo lại cài đặt).
+  Cách siết chặt hơn là chuyển việc đếm giờ vào service.
 - Nếu `babycontrol-kiosk.exe` không chạy được trong phiên của con quá khoảng 30 giây, service đăng xuất phiên đó.
   Nếu thiếu file kiosk, service không làm gì để tránh đăng xuất liên tục khi cài lỗi.
 - Ctrl+Alt+Del vẫn dùng được (đăng xuất, khoá máy). Task Manager bị tắt bằng chính sách người dùng.
