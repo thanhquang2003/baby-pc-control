@@ -13,6 +13,7 @@ from .config import (
     Config, ConfigCorrupt, ConfigError, StudyWindow, load_config, prepare_data_dir,
     save_config,
 )
+from .blocklist import GAME_PRESETS, normalize_app, normalize_site
 from .timer import UsageTracker
 
 DAY_NAMES = ["T2", "T3", "T4", "T5", "T6", "T7", "CN"]
@@ -144,6 +145,44 @@ class AdminSession:
         del windows[index]
         self._apply(replace(self.config, study_windows=windows))
 
+    # --- blocked apps and websites ---------------------------------------
+    def add_blocked_app(self, text: str) -> str:
+        """Block an app by name or path ('steam', 'C:\\...\\Steam.exe'). Returns
+        the stored name."""
+        self._require_auth()
+        name = normalize_app(text)
+        if name not in self.config.blocked_apps:
+            self._apply(replace(self.config, blocked_apps=self.config.blocked_apps + [name]))
+        return name
+
+    def remove_blocked_app(self, index: int) -> None:
+        self._require_auth()
+        apps = list(self.config.blocked_apps)
+        del apps[index]
+        self._apply(replace(self.config, blocked_apps=apps))
+
+    def add_game_presets(self) -> int:
+        """Add the common-games starter list. Returns how many were new."""
+        self._require_auth()
+        new = [g for g in GAME_PRESETS if g not in self.config.blocked_apps]
+        if new:
+            self._apply(replace(self.config, blocked_apps=self.config.blocked_apps + new))
+        return len(new)
+
+    def add_blocked_site(self, text: str) -> str:
+        """Block a website given as a link or domain. Returns the stored domain."""
+        self._require_auth()
+        domain = normalize_site(text)
+        if domain not in self.config.blocked_sites:
+            self._apply(replace(self.config, blocked_sites=self.config.blocked_sites + [domain]))
+        return domain
+
+    def remove_blocked_site(self, index: int) -> None:
+        self._require_auth()
+        sites = list(self.config.blocked_sites)
+        del sites[index]
+        self._apply(replace(self.config, blocked_sites=sites))
+
     # --- time -----------------------------------------------------------
     def grant_bonus(self, minutes: int) -> None:
         self._require_auth()
@@ -167,12 +206,12 @@ class AdminSession:
 
 def run_ui(base: Path | None = None) -> None:
     import tkinter as tk
-    from tkinter import messagebox, ttk
+    from tkinter import filedialog, messagebox, ttk
 
     session = AdminSession(base)
     root = tk.Tk()
     root.title("BabyControl - Phụ huynh")
-    root.geometry("520x460")
+    root.geometry("560x660")
 
     def clear():
         for child in root.winfo_children():
@@ -333,6 +372,79 @@ def run_ui(base: Path | None = None) -> None:
         ttk.Label(tab, text="Nhật ký sử dụng:").pack(anchor="w")
         report.pack(fill="x")
         refresh_time()
+
+        # Blocking tab: games/apps and websites
+        tab = ttk.Frame(notebook, padding=12)
+        notebook.add(tab, text="Chặn")
+
+        def blocklist_section(parent, title, getter, add_text, remove_at, hint):
+            frame = ttk.LabelFrame(parent, text=title, padding=8)
+            frame.pack(fill="both", expand=True, pady=4)
+            box = tk.Listbox(frame, height=5)
+            box.pack(fill="both", expand=True)
+
+            def refresh():
+                box.delete(0, "end")
+                for item in getter():
+                    box.insert("end", item)
+
+            def add_entry():
+                text = entry_var.get().strip()
+                added = []
+                if guarded(lambda: added.append(add_text(text))):
+                    entry_var.set("")
+                    refresh()
+                    messagebox.showinfo("Đã chặn", f"Đã thêm: {added[0]}")
+
+            def remove_selected():
+                sel = box.curselection()
+                if sel and guarded(lambda: remove_at(sel[0])):
+                    refresh()
+
+            row = ttk.Frame(frame)
+            row.pack(fill="x", pady=4)
+            entry_var = tk.StringVar()
+            entry = ttk.Entry(row, textvariable=entry_var)
+            entry.pack(side="left", fill="x", expand=True)
+            entry.bind("<Return>", lambda _e: add_entry())
+            ttk.Button(row, text="Thêm", command=add_entry).pack(side="left", padx=4)
+            ttk.Button(row, text="Xoá mục chọn", command=remove_selected).pack(side="left")
+            ttk.Label(frame, text=hint, wraplength=470, foreground="#555555").pack(anchor="w")
+            refresh()
+            return frame, refresh, entry_var
+
+        apps_frame, refresh_apps, apps_var = blocklist_section(
+            tab, "Game / ứng dụng bị chặn (tên file .exe)",
+            lambda: session.config.blocked_apps, session.add_blocked_app,
+            session.remove_blocked_app,
+            "Nhập tên như steam.exe hoặc bấm 'Chọn file'. Chương trình bị tắt ngay khi con mở.")
+
+        def pick_exe():
+            path = filedialog.askopenfilename(
+                title="Chọn file .exe của game/ứng dụng", filetypes=[("Ứng dụng", "*.exe")])
+            if path:
+                apps_var.set(path)
+
+        def add_presets():
+            added = []
+            if guarded(lambda: added.append(session.add_game_presets())):
+                refresh_apps()
+                messagebox.showinfo("Đã thêm", f"Đã thêm {added[0]} game/launcher phổ biến. "
+                                    "Bạn có thể xoá bớt mục không cần.")
+
+        extra = ttk.Frame(apps_frame)
+        extra.pack(fill="x")
+        ttk.Button(extra, text="Chọn file .exe...", command=pick_exe).pack(side="left")
+        ttk.Button(extra, text="Thêm nhóm game phổ biến", command=add_presets).pack(side="left", padx=6)
+
+        blocklist_section(
+            tab, "Trang web bị chặn (dán link)",
+            lambda: session.config.blocked_sites, session.add_blocked_site,
+            session.remove_blocked_site,
+            "Dán link hoặc tên trang, ví dụ https://www.youtube.com/... -> chặn youtube.com. "
+            "Chặn cả trang web, không chặn riêng từng bài. Có hiệu lực sau vài giây.")
+        ttk.Label(tab, wraplength=470, foreground="#555555",
+                  text="Khi bố mẹ ở chế độ bố mẹ, danh sách chặn tạm không áp dụng.").pack(anchor="w")
 
         # Password tab
         tab = ttk.Frame(notebook, padding=16)

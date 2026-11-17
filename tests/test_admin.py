@@ -192,3 +192,49 @@ def test_usage_report_lists_finished_days_and_today(tmp_path):
     session = AdminSession(tmp_path, now_fn=lambda: NOW)
     # today: the tick right after midnight rollover also counts the 60s gap
     assert session.usage_report() == [("2026-11-16", 2), ("2026-11-15", 1)]
+
+
+# --- FEAT-013: blocked apps and sites --------------------------------------------
+
+def test_block_apps_and_sites_from_the_admin_tool(admin, tmp_path):
+    assert admin.add_blocked_app(r"C:\Games\Steam\Steam.exe") == "steam.exe"
+    assert admin.add_blocked_app("STEAM") == "steam.exe"                   # no duplicate
+    assert admin.add_blocked_site("https://www.YouTube.com/watch?v=1") == "youtube.com"
+    assert admin.add_blocked_site("youtube.com") == "youtube.com"          # no duplicate
+    loaded = load_config(tmp_path)
+    assert loaded.blocked_apps == ["steam.exe"]
+    assert loaded.blocked_sites == ["youtube.com"]
+    admin.remove_blocked_app(0)
+    admin.remove_blocked_site(0)
+    loaded = load_config(tmp_path)
+    assert loaded.blocked_apps == [] and loaded.blocked_sites == []
+
+
+def test_game_presets_are_added_once(admin, tmp_path):
+    from babycontrol.blocklist import GAME_PRESETS
+    admin.add_blocked_app("custom.exe")
+    assert admin.add_game_presets() == len(GAME_PRESETS)
+    assert admin.add_game_presets() == 0
+    apps = load_config(tmp_path).blocked_apps
+    assert apps[0] == "custom.exe" and set(GAME_PRESETS) <= set(apps)
+
+
+def test_bad_block_entries_are_rejected_and_nothing_is_saved(admin, tmp_path):
+    for call in (lambda: admin.add_blocked_app("explorer.exe"),
+                 lambda: admin.add_blocked_app(""),
+                 lambda: admin.add_blocked_site("not a site"),
+                 lambda: admin.add_blocked_site("10.0.0.1")):
+        with pytest.raises(ValueError):
+            call()
+    loaded = load_config(tmp_path)
+    assert loaded.blocked_apps == [] and loaded.blocked_sites == []
+
+
+def test_blocking_requires_login(tmp_path):
+    AdminSession(tmp_path).set_initial_password("parent")
+    fresh = AdminSession(tmp_path)
+    for call in (lambda: fresh.add_blocked_app("steam"), lambda: fresh.add_blocked_site("a.com"),
+                 lambda: fresh.add_game_presets(), lambda: fresh.remove_blocked_app(0),
+                 lambda: fresh.remove_blocked_site(0)):
+        with pytest.raises(AuthError):
+            call()

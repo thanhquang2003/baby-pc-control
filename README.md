@@ -15,6 +15,9 @@ Công cụ quản lý giờ dùng máy tính Windows cho trẻ em, viết bằng
 - **Khung giờ mở thả để học:** lịch theo tuần (ví dụ T2–T6 19:00–20:30). Trong khung này con dùng máy tự do,
   không phải làm bài và không bị trừ giờ.
 - **Màn hình kiosk:** phủ toàn màn hình khi cần làm bài hoặc hết giờ; có đồng hồ đếm ngược và cảnh báo còn 5 phút, 1 phút.
+- **Chặn game, ứng dụng và trang web:** bố mẹ nhập tên file `.exe` (hoặc chọn file, hoặc thêm sẵn nhóm game phổ biến) và dán
+  link trang web cần chặn. Dịch vụ nền tắt chương trình bị chặn trong vài giây và chặn trang web qua file `hosts` của Windows
+  (áp dụng cho mọi trình duyệt). Trong chế độ bố mẹ thì tạm không chặn. Không chặn được các thành phần hệ thống của Windows.
 - **Một tài khoản dùng chung:** bố mẹ và con dùng chung một tài khoản Windows. Bố mẹ nhập mật khẩu ở màn hình khoá
   để vào **chế độ bố mẹ** (dùng máy tự do vài giờ, không bị đếm giờ).
 - **Service giám sát:** chạy nền bằng quyền SYSTEM, tự bật lại kiosk nếu bị tắt, chặn Task Manager (bật/tắt được).
@@ -103,13 +106,14 @@ Gỡ thủ công: `scripts\uninstall_service.ps1` (Run as administrator).
 
 ## Cấu hình
 
-Tất cả chỉnh qua `babycontrol-admin.exe`, gồm bốn tab:
+Tất cả chỉnh qua `babycontrol-admin.exe`, gồm năm tab:
 
 | Tab | Nội dung |
 |---|---|
 | Cài đặt | Phút mỗi ngày (1–1440), lớp (1–12), số câu Toán, số câu Tiếng Anh mỗi lần (0–50, tổng ít nhất 1), chặn Task Manager |
 | Giờ học | Thêm hoặc xoá khung giờ theo ngày trong tuần và giờ bắt đầu, kết thúc |
 | Thời gian | Số phút đã dùng và còn lại hôm nay, cộng thêm giờ, nhật ký sử dụng |
+| Chặn | Danh sách game/ứng dụng (tên file `.exe`) và trang web (dán link) bị chặn; có nút thêm sẵn nhóm game phổ biến |
 | Mật khẩu | Đổi mật khẩu phụ huynh |
 
 Thay đổi có hiệu lực trong khoảng 10 giây, không cần khởi động lại.
@@ -166,4 +170,9 @@ xem `AGENTS.md`.
 - Nếu `babycontrol-kiosk.exe` không chạy được trong phiên của con quá khoảng 30 giây, service đăng xuất phiên đó.
   Nếu thiếu file kiosk, service không làm gì để tránh đăng xuất liên tục khi cài lỗi.
 - Ctrl+Alt+Del vẫn dùng được (đăng xuất, khoá máy). Task Manager bị tắt bằng chính sách người dùng.
+- Chặn ứng dụng dựa trên **tên file `.exe`**: đổi tên file là qua mặt được, và game mới hoặc tên khác phải được thêm vào danh sách
+  (nhóm game phổ biến chỉ là danh sách gợi ý, có thể thiếu hoặc lệch theo phiên bản).
+- Chặn trang web qua file `hosts` chỉ chặn **cả tên miền** (và bản `www.`), không chặn riêng một trang con hay video. Có thể bị
+  vượt qua bằng VPN, proxy, hoặc tính năng "DNS an toàn" của trình duyệt (như Firefox). Các tên miền phụ khác (ví dụ `m.`) cần nhập thêm.
+  Trình cài đặt luôn xoá khối chặn trong `hosts` khi gỡ.
 - Danh sách từ vựng Tiếng Anh còn nhỏ (khoảng 16–18 từ mỗi nhóm lớp); bài Toán lớp 5 trở lên theo chương trình phổ thông ước lượng.

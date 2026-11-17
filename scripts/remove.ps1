@@ -74,6 +74,27 @@ try {
         }
     }
 
+    # 3b. Go khoi chan trang web trong file hosts (giu nguyen cac dong khac)
+    $hostsPath = Join-Path $env:SystemRoot "System32\drivers\etc\hosts"
+    if (Test-Path $hostsPath) {
+        $kept = @()
+        $skipping = $false
+        foreach ($line in (Get-Content -Path $hostsPath)) {
+            if ($line.StartsWith("# BEGIN BabyControl")) { $skipping = $true; continue }
+            if ($skipping) {
+                if ($line.StartsWith("# END BabyControl")) { $skipping = $false }
+                continue
+            }
+            $kept += $line
+        }
+        $current = @(Get-Content -Path $hostsPath)
+        if ($kept.Count -ne $current.Count) {
+            [System.IO.File]::WriteAllLines($hostsPath, $kept, (New-Object System.Text.UTF8Encoding($false)))
+            & ipconfig.exe /flushdns | Out-Null
+            Say "Da go cac trang web bi chan." "Green"
+        }
+    }
+
     # 4. Xoa loi tat va chuong trinh
     $desktop = [Environment]::GetFolderPath("CommonDesktopDirectory")
     Remove-Item (Join-Path $desktop "BabyControl - Phu huynh.lnk") -Force -ErrorAction SilentlyContinue
