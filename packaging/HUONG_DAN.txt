@@ -1,0 +1,27 @@
+BABYCONTROL - HƯỚNG DẪN CÀI ĐẶT NHANH
+=====================================
+
+Bản này đã có sẵn chương trình, KHÔNG cần cài Python và KHÔNG cần Internet.
+
+CÁCH CÀI
+  1. Bấm chuột phải file ZIP vừa tải -> Extract All (Giải nén tất cả) -> Extract.
+     (Đừng chạy thẳng bên trong file ZIP.)
+  2. Mở thư mục vừa giải nén, nhấp đúp file  CAI_DAT.bat
+     - Nếu Windows báo "Windows protected your PC": bấm "More info" -> "Run anyway".
+     - Khi hộp thoại xin quyền hiện ra, bấm "Yes" (Có).
+  3. Chờ vài chục giây đến khi thấy chữ  HOÀN TẤT CÀI ĐẶT.
+  4. Cửa sổ BabyControl tự mở: tạo MẬT KHẨU PHỤ HUYNH, đặt số phút mỗi ngày,
+     lớp của con, số câu hỏi mỗi môn, rồi ĐÓNG cửa sổ. Từ lúc đó máy được bảo vệ.
+
+SAU NÀY
+  - Mở lại cài đặt: biểu tượng "BabyControl - Phu huynh" trên màn hình nền.
+  - Màn hình khoá: bố mẹ nhập mật khẩu, chọn số phút, rồi bấm
+    "Thêm giờ cho con" hoặc "Bố mẹ dùng máy".
+  - Gỡ cài đặt: nhấp đúp GO_CAI_DAT.bat (cần mật khẩu phụ huynh).
+  - Cài bản mới đè lên: chạy lại CAI_DAT.bat, mật khẩu và cài đặt được giữ nguyên.
+
+LƯU Ý
+  - Phần mềm diệt virus đôi khi cảnh báo nhầm file .exe này vì chưa có chữ ký số.
+    Nếu bị chặn, hãy cho phép thư mục  C:\Program Files\BabyControl
+  - Kiểm tra file tải về (không bắt buộc): so mã SHA256 của file ZIP với file .sha256
+    đi kèm trên trang Releases.

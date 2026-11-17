@@ -49,14 +49,21 @@ Tất cả các tài khoản, kể cả tài khoản quản trị, đều đư�
 
 ## Cài đặt (dành cho người không rành máy tính)
 
-Chỉ cần máy Windows 10/11 **có kết nối Internet**. Không cần cài gì trước, trình cài đặt tự lo hết.
+Cần máy Windows 10/11 (64-bit). Không cần cài gì trước.
 
-1. Vào trang GitHub của dự án, bấm nút xanh **Code** → **Download ZIP**.
+**Cách nhanh (khuyên dùng): bản build sẵn, cài trong khoảng 1 phút, không cần Internet hay Python.**
+
+1. Vào trang **Releases** của dự án trên GitHub, tải file `BabyControl-<phiên bản>-windows-x64.zip` ở mục *Assets*
+   (không phải "Source code"). Các bản này do GitHub Actions tự build trên Windows; có kèm file `.sha256` để đối chiếu nếu muốn.
+
+*Cách chậm: tự build trên máy (khoảng 5–10 phút, cần Internet).* Bấm nút xanh **Code** → **Download ZIP** ở trang chính
+của dự án; trình cài đặt sẽ tự cài Python và tự build.
+
 2. Mở thư mục *Downloads*, bấm chuột phải file ZIP vừa tải → **Extract All** (Giải nén) → **Extract**.
 3. Mở thư mục vừa giải nén, **nhấp đúp file `CAI_DAT.bat`**.
    - Nếu Windows báo "Windows protected your PC": bấm **More info** → **Run anyway**.
    - Khi hộp thoại xin quyền hiện ra, bấm **Yes** (Có). Nếu máy hỏi mật khẩu quản trị thì nhập mật khẩu quản trị.
-4. Chờ khoảng 5–10 phút, **đừng tắt cửa sổ** cho đến khi thấy chữ **HOÀN TẤT CÀI ĐẶT** (chữ xanh).
+4. Chờ đến khi thấy chữ **HOÀN TẤT CÀI ĐẶT** (chữ xanh), **đừng tắt cửa sổ** trong lúc chờ. Cách nhanh mất khoảng 1 phút, cách chậm 5–10 phút.
 5. Cửa sổ **BabyControl** tự mở ra: tạo **mật khẩu phụ huynh**, rồi đặt số phút mỗi ngày, lớp của con,
    số câu hỏi mỗi môn và các khung giờ học tự do. Xong là máy đã được bảo vệ.
    Trước khi tạo mật khẩu, máy **không bị khoá** (chỉ hiện dòng nhắc nhỏ ở góc màn hình). Trong lúc cửa sổ
@@ -64,7 +71,7 @@ Chỉ cần máy Windows 10/11 **có kết nối Internet**. Không cần cài g
    và màn hình bài tập hiện ra. Nếu cửa sổ bị tắt đột ngột, bảo vệ tự bật lại sau tối đa 3 phút.
 
 Sau này, mở lại cài đặt bằng biểu tượng **BabyControl - Phu huynh** trên màn hình nền.
-Trình cài đặt tự cài Python nếu máy chưa có, nên lần đầu có thể lâu hơn. Cài lại lên bản mới chỉ cần chạy lại
+Cài lại lên bản mới chỉ cần chạy lại
 `CAI_DAT.bat`: cài đặt và nhật ký cũ được giữ nguyên.
 
 Nếu có lỗi, cửa sổ sẽ hiện chữ đỏ và ghi chi tiết vào file `install.log` cạnh `CAI_DAT.bat`; gửi file đó cho người hỗ trợ.
@@ -90,7 +97,7 @@ Gỡ thủ công: `scripts\uninstall_service.ps1` (Run as administrator).
 
 ## Yêu cầu
 
-- Windows 10/11 64-bit, có Internet khi cài.
+- Windows 10/11 64-bit. Cần Internet khi cài chỉ với "cách chậm" (tự build); bản build sẵn thì không.
 - Một tài khoản Windows là đủ (bố mẹ và con dùng chung). Có thể dùng tài khoản thường hoặc quản trị.
   Tài khoản thường an toàn hơn: con không tự cài hoặc gỡ được chương trình.
 
@@ -140,6 +147,16 @@ bash init.sh --verify    # tạo .venv, cài phụ thuộc, chạy pytest
 Test chạy được trên macOS và Linux. Các module gọi API Windows (`service.py`, phần giao diện Tk) chỉ được
 kiểm tra cú pháp ở đó. Dự án dùng lean-ai-harness (`lah`) để quản lý hàng đợi công việc trong `state/`;
 xem `AGENTS.md`.
+
+### GitHub Actions
+
+- **CI** (`.github/workflows/ci.yml`): chạy toàn bộ test trên `windows-latest` cho mỗi push và pull request vào `main`.
+- **Release build** (`.github/workflows/release.yml`): build 3 file `.exe` bằng PyInstaller trên Windows, đóng gói
+  `BabyControl-<phiên bản>-windows-x64.zip` (gồm `.exe`, `CAI_DAT.bat`, `GO_CAI_DAT.bat`, trình cài và `HUONG_DAN.txt`)
+  cùng file `.sha256`.
+  - Đẩy tag `v*` (ví dụ `git tag -a v2.2.0 -m "..." && git push origin v2.2.0`): ZIP được đính vào GitHub Release của tag đó
+    (tạo Release mới nếu chưa có).
+  - Chạy tay (*Actions → Release build → Run workflow*): chỉ chạy thử, ZIP nằm trong *Artifacts* của lần chạy, không công bố gì.
 
 ## Hạn chế đã biết
 

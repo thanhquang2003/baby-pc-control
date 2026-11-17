@@ -15,6 +15,12 @@ $ServiceName = "BabyControl"
 $PythonVersion = "3.12.8"
 $PythonUrl = "https://www.python.org/ftp/python/$PythonVersion/python-$PythonVersion-amd64.exe"
 $TotalSteps = 7
+$ExeNames = @("babycontrol-service.exe", "babycontrol-kiosk.exe", "babycontrol-admin.exe")
+# Ban tai tu trang Releases co san file .exe canh CAI_DAT.bat: khong can Python va khong can build.
+$Prebuilt = $true
+foreach ($exeName in $ExeNames) {
+    if (-not (Test-Path (Join-Path $RepoRoot $exeName))) { $Prebuilt = $false }
+}
 
 function Write-Log($Message) {
     $line = "[{0}] {1}" -f (Get-Date -Format "yyyy-MM-dd HH:mm:ss"), $Message
@@ -176,54 +182,73 @@ try {
     Say "   CAI DAT BABYCONTROL" "Green"
     Say "   Quan ly gio dung may cho tre" "Green"
     Say "==============================================" "Green"
-    Say "Viec nay mat khoang 5-10 phut, can ket noi Internet."
+    if (-not $Prebuilt) { Say "Viec nay mat khoang 5-10 phut, can ket noi Internet." }
     Say "Xin dung tat cua so nay cho den khi co thong bao HOAN TAT."
+    if ($Prebuilt) { Say "Dung ban cai nhanh: khong can Internet, khong can Python." "Green" }
 
     Step 1 "Kiem tra may tinh"
     if ([Environment]::OSVersion.Version.Major -lt 10) { throw "Can Windows 10 hoac 11." }
     if (-not [Environment]::Is64BitOperatingSystem) { throw "Can Windows 64-bit." }
-    foreach ($needed in @("requirements-dev.txt", "scripts\entry_service.py", "babycontrol\kiosk.py")) {
+    $neededFiles = @("scripts\install_service.ps1", "scripts\remove.ps1")
+    if (-not $Prebuilt) {
+        $neededFiles += @("requirements-dev.txt", "scripts\entry_service.py", "babycontrol\kiosk.py")
+    }
+    foreach ($needed in $neededFiles) {
         if (-not (Test-Path (Join-Path $RepoRoot $needed))) {
             throw "Thieu file $needed. Hay giai nen DAY DU thu muc BabyControl roi chay lai."
         }
     }
     Say "May tinh phu hop." "Green"
 
+    $dist = Join-Path $BuildRoot "dist"
+    if ($Prebuilt) { $dist = $RepoRoot }
+
     Step 2 "Kiem tra / cai Python"
-    $python = Find-Python
-    if ($python) {
-        Say "Da co Python: $python" "Green"
+    if ($Prebuilt) {
+        Say "Ban nay da co san chuong trinh, khong can Python." "Green"
     } else {
-        $python = Install-Python
-        Say "Da cai xong Python." "Green"
+        $python = Find-Python
+        if ($python) {
+            Say "Da co Python: $python" "Green"
+        } else {
+            $python = Install-Python
+            Say "Da cai xong Python." "Green"
+        }
     }
 
     Step 3 "Chuan bi cong cu (tai thu vien, can Internet)"
-    Set-Location $RepoRoot
-    if (Test-Path $VenvDir) { Remove-Item $VenvDir -Recurse -Force }
-    New-Item -ItemType Directory -Path $BuildRoot -Force | Out-Null
-    Run-Logged $python @("-m", "venv", $VenvDir)
-    $venvPython = Join-Path $VenvDir "Scripts\python.exe"
-    Run-Logged $venvPython @("-m", "pip", "install", "--disable-pip-version-check", "-r", "requirements-dev.txt")
-    Say "Xong." "Green"
+    if ($Prebuilt) {
+        Say "Bo qua (khong can)." "Green"
+    } else {
+        Set-Location $RepoRoot
+        if (Test-Path $VenvDir) { Remove-Item $VenvDir -Recurse -Force }
+        New-Item -ItemType Directory -Path $BuildRoot -Force | Out-Null
+        Run-Logged $python @("-m", "venv", $VenvDir)
+        $venvPython = Join-Path $VenvDir "Scripts\python.exe"
+        Run-Logged $venvPython @("-m", "pip", "install", "--disable-pip-version-check", "-r", "requirements-dev.txt")
+        Say "Xong." "Green"
+    }
 
     Step 4 "Tao chuong trinh BabyControl (buoc lau nhat, vui long cho)"
-    $dist = Join-Path $BuildRoot "dist"
-    $work = Join-Path $BuildRoot "work"
-    $common = @("-m", "PyInstaller", "--noconfirm", "--onefile", "--paths", ".",
-                "--distpath", $dist, "--workpath", $work, "--specpath", $BuildRoot)
-    Say "  - dich vu nen..."
-    Run-Logged $venvPython ($common + @("--name", "babycontrol-service",
-        "--hidden-import", "win32timezone", "--hidden-import", "servicemanager",
-        "scripts\entry_service.py"))
-    Say "  - man hinh khoa..."
-    Run-Logged $venvPython ($common + @("--noconsole", "--name", "babycontrol-kiosk",
-        "scripts\entry_kiosk.py"))
-    Say "  - cong cu danh cho phu huynh..."
-    Run-Logged $venvPython ($common + @("--noconsole", "--uac-admin", "--name", "babycontrol-admin",
-        "scripts\entry_admin.py"))
-    foreach ($exe in @("babycontrol-service.exe", "babycontrol-kiosk.exe", "babycontrol-admin.exe")) {
-        if (-not (Test-Path (Join-Path $dist $exe))) { throw "Khong tao duoc $exe" }
+    if ($Prebuilt) {
+        Say "Dung chuong trinh da build san." "Green"
+    } else {
+        $work = Join-Path $BuildRoot "work"
+        $common = @("-m", "PyInstaller", "--noconfirm", "--onefile", "--paths", ".",
+                    "--distpath", $dist, "--workpath", $work, "--specpath", $BuildRoot)
+        Say "  - dich vu nen..."
+        Run-Logged $venvPython ($common + @("--name", "babycontrol-service",
+            "--hidden-import", "win32timezone", "--hidden-import", "servicemanager",
+            "scripts\entry_service.py"))
+        Say "  - man hinh khoa..."
+        Run-Logged $venvPython ($common + @("--noconsole", "--name", "babycontrol-kiosk",
+            "scripts\entry_kiosk.py"))
+        Say "  - cong cu danh cho phu huynh..."
+        Run-Logged $venvPython ($common + @("--noconsole", "--uac-admin", "--name", "babycontrol-admin",
+            "scripts\entry_admin.py"))
+    }
+    foreach ($exe in $ExeNames) {
+        if (-not (Test-Path (Join-Path $dist $exe))) { throw "Khong tim thay $exe" }
     }
     Say "Xong." "Green"
 
@@ -237,8 +262,10 @@ try {
     }
     Start-Sleep -Seconds 2
     New-Item -ItemType Directory -Path $InstallDir -Force | Out-Null
-    foreach ($exe in @("babycontrol-service.exe", "babycontrol-kiosk.exe", "babycontrol-admin.exe")) {
+    foreach ($exe in $ExeNames) {
         Copy-WithRetry (Join-Path $dist $exe) (Join-Path $InstallDir $exe)
+        # File tai tu Internet bi danh dau "tu mang ve"; bo dau de Windows khong chan.
+        Unblock-File -Path (Join-Path $InstallDir $exe) -ErrorAction SilentlyContinue
     }
     Copy-WithRetry (Join-Path $PSScriptRoot "remove.ps1") (Join-Path $InstallDir "remove.ps1")
     Say "Xong." "Green"
