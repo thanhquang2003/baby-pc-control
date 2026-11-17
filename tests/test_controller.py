@@ -118,6 +118,29 @@ def test_parent_override(setup):
     assert view.remaining_seconds == 15 * 60
 
 
+def test_first_run_without_password_never_locks(tmp_path):
+    clock = Clock()
+    ctl = KioskController(Config(), UsageTracker(tmp_path), lambda: clock.now,
+                          lambda: clock.mono, random.Random(1))
+    for _ in range(40):
+        clock.advance(60)
+        view = ctl.update()
+        assert view.state is AccessState.NOT_SET_UP and view.question is None
+    assert ctl.tracker.used_seconds(clock.now) == 0
+
+
+def test_supervision_starts_once_password_is_set(tmp_path):
+    clock = Clock()
+    config = Config()
+    ctl = KioskController(config, UsageTracker(tmp_path), lambda: clock.now,
+                          lambda: clock.mono, random.Random(1))
+    assert ctl.update().state is AccessState.NOT_SET_UP
+    configured = Config()
+    configured.set_password("parent")
+    ctl.set_config(configured)           # kiosk reloads config every 10 s
+    assert ctl.update().state is AccessState.NEED_EXERCISE
+
+
 def test_parent_mode_unlocks_without_exercises_and_counts_nothing(setup):
     ctl, clock = setup
     assert ctl.parent_pause("wrong", 120) is False
@@ -158,6 +181,7 @@ def test_unreadable_config_locks_and_recovers(setup):
     assert view.state is AccessState.CONFIG_ERROR and view.question is None
     assert ctl.parent_override("parent") is False
     fixed = Config(daily_limit_minutes=10, math_questions=1, english_questions=1)
+    fixed.set_password("parent")
     ctl.set_config(fixed)
     assert ctl.update().state is AccessState.NEED_EXERCISE   # must redo exercises
 
@@ -174,5 +198,6 @@ def test_config_change_takes_effect(setup):
     clock.advance(60)
     ctl.update()
     new = Config(daily_limit_minutes=1, math_questions=1, english_questions=1)
+    new.set_password("parent")
     ctl.set_config(new)
     assert ctl.update().state is AccessState.NO_QUOTA

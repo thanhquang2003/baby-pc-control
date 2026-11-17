@@ -163,7 +163,11 @@ class KioskApp:
             self.hud.withdraw()
             return
         color = {"5min": "#ffd54f", "1min": "#ff5252"}.get(view.warning, "#7CFC00")
-        if view.state is AccessState.PARENT_MODE:
+        if view.state is AccessState.NOT_SET_UP:
+            text = "BabyControl chưa thiết lập: mở 'BabyControl - Phu huynh'"
+            color = "#ffd54f"
+            self.hud_button.pack_forget()
+        elif view.state is AccessState.PARENT_MODE:
             text = f"Chế độ bố mẹ: còn {format_mmss(view.remaining_seconds)}"
             self.hud_button.pack(side="left", padx=4)
         else:
