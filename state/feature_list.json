@@ -181,10 +181,10 @@
         "parent:chọn số phút làm việc trước khi mở khoá"
       ],
       "complexity": "small",
-      "status": "in-progress",
+      "status": "done",
       "layer": "Full-stack",
       "dependencies": [],
-      "evidence": null,
+      "evidence": "https://github.com/thanhquang2003/baby-pc-control/pull/8 (squash 84f7a6c). 167 tests passed; Tk screen untested on Windows",
       "created": "2026-11-17",
       "updated": "2026-11-17"
     }
